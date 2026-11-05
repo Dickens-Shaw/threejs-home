@@ -901,13 +901,17 @@ function stockBuiltin(lib){
 }
 function loadLibrary(){
   let lib = null;
-  try {
-    const raw = JSON.parse(localStorage.getItem('huxing-plans-v2'));
-    if (raw && Array.isArray(raw.plans) && raw.plans.length && raw.plans.every(p => Array.isArray(p.walls))){
-      raw.plans.forEach(normalizePlan);
-      lib = raw;
-    }
-  } catch(e) {}
+  const storedKeys = typeof LIB_KEY === 'string' ? [LIB_KEY, 'huxing-plans-v2'] : ['huxing-plans-v2'];
+  for (const key of storedKeys){
+    try {
+      const raw = JSON.parse(localStorage.getItem(key));
+      if (raw && Array.isArray(raw.plans) && raw.plans.length && raw.plans.every(p => Array.isArray(p.walls))){
+        raw.plans.forEach(normalizePlan);
+        lib = raw;
+        break;
+      }
+    } catch(e) {}
+  }
   const shipped = shippedDefault();
   if (!lib){
     if (shipped) lib = shipped;
