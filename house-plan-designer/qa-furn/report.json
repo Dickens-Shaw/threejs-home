@@ -1,0 +1,29 @@
+{
+ "file": "/Users/worker/Desktop/projects/threejs-home/floorplan-3d/三室一厅-装修设计器.html",
+ "gpu": {
+  "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M2, Unspecified Version)",
+  "software": false
+ },
+ "soft": false,
+ "results": [
+  {
+   "name": "家具：点选 / 拖动 / R 旋转 / Ctrl+D 复制 / Delete 删除",
+   "group": "2d",
+   "ok": true,
+   "unverified": false,
+   "msg": "",
+   "ms": 2454,
+   "shot": "001_家具：点选_拖动_R_旋转_Ctrl+D_复制_Delete_删除.png"
+  },
+  {
+   "name": "家具：拖四边 / 四角改宽深、尺寸牌输入宽深高、拖动改高度",
+   "group": "2d",
+   "ok": true,
+   "unverified": false,
+   "msg": "",
+   "ms": 4387,
+   "shot": "002_家具：拖四边_四角改宽深、尺寸牌输入宽深高、拖动改高度.png"
+  }
+ ],
+ "errors": []
+}

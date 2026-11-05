@@ -1,0 +1,65 @@
+{
+ "file": "/Users/worker/Desktop/projects/threejs-home/floorplan-3d/三室一厅-装修设计器.html",
+ "gpu": {
+  "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M2, Unspecified Version)",
+  "software": false
+ },
+ "soft": false,
+ "results": [
+  {
+   "name": "漫游：进入 / 走动 / 转向 / 退出",
+   "group": "walk",
+   "ok": false,
+   "unverified": false,
+   "msg": "漫游画面空白",
+   "ms": 6705,
+   "shot": "001_漫游：进入_走动_转向_退出.png"
+  },
+  {
+   "name": "漫游：视高 / 视距 / 视角调节",
+   "group": "walk",
+   "ok": true,
+   "unverified": false,
+   "msg": "",
+   "ms": 3455,
+   "shot": "003_漫游：视高_视距_视角调节.png"
+  },
+  {
+   "name": "720° 全景（漫游中）",
+   "group": "walk",
+   "ok": true,
+   "unverified": false,
+   "msg": "三室一厅一卫-全景.jpg",
+   "ms": 3018,
+   "shot": "004_720°_全景（漫游中）.png"
+  },
+  {
+   "name": "3D 里点门 / 开关（射线点中可交互物体）",
+   "group": "walk",
+   "ok": true,
+   "unverified": false,
+   "msg": "",
+   "ms": 1390,
+   "shot": "005_3D_里点门_开关（射线点中可交互物体）.png"
+  },
+  {
+   "name": "漫游：夜里点位标记 + 空格开关灯",
+   "group": "walk",
+   "ok": true,
+   "unverified": false,
+   "msg": "",
+   "ms": 13363,
+   "shot": "007_漫游：夜里点位标记_+_空格开关灯.png"
+  },
+  {
+   "name": "退出漫游",
+   "group": "walk",
+   "ok": true,
+   "unverified": false,
+   "msg": "",
+   "ms": 1279,
+   "shot": "008_退出漫游.png"
+  }
+ ],
+ "errors": []
+}

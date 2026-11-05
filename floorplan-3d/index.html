@@ -1,0 +1,643 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#fffdf9">
+<title>户型装修设计</title>
+<style>
+:root{
+  --bg:#f3efe7; --paper:#f7f4ee; --panel:#fffdf9; --line:#e3dccf; --ink:#2b2824; --muted:#8a8174;
+  --accent:#b5653a; --accent-soft:#f3e3d8; --teal:#2f5d62;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);overflow:hidden;overscroll-behavior:none;touch-action:manipulation;
+  -webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent;
+  font:13px/1.5 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+button,input,select{font:inherit;color:inherit}
+.app{display:grid;grid-template-rows:auto minmax(0,1fr) 30px;grid-template-columns:236px minmax(0,1fr) 300px;height:100vh;height:100dvh;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+input{-webkit-user-select:text;user-select:text}
+header{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:8px 14px;
+  background:var(--panel);border-bottom:1px solid var(--line)}
+.brand{display:flex;flex-direction:column;margin-right:8px;line-height:1.25}
+.brand b{font-size:15px;letter-spacing:.5px}
+.brand span{color:var(--muted);font-size:12px}
+.grp{display:flex;align-items:center;gap:2px;padding:2px;border:1px solid var(--line);border-radius:8px;background:#fff}
+.btn{border:0;background:transparent;padding:5px 9px;border-radius:6px;cursor:pointer;white-space:nowrap}
+.btn:hover{background:#f2ece2}
+.btn.on{background:var(--ink);color:#fff}
+.btn.chip.on{background:var(--accent-soft);color:var(--accent)}
+#langSel .btn{min-width:32px;font-weight:500}
+.btn.primary{background:var(--accent);color:#fff}
+.btn.primary:hover{background:#9f5530}
+.btn.danger{color:#b3372a}
+.spacer{flex:1}
+aside{background:var(--panel);overflow:auto;border-right:1px solid var(--line)}
+aside.right{border-right:0;border-left:1px solid var(--line)}
+aside.lib{display:flex;flex-direction:column;overflow:hidden}
+.lib-bar{display:flex;gap:6px;align-items:center;flex:none;padding:8px 10px;border-bottom:1px solid var(--line);background:var(--panel)}
+.lib-bar input{flex:1;min-width:0;border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:#fff}
+.lib-bar .btn{flex:none;border:1px solid var(--line);background:#fff;padding:6px 8px}
+.lib-scroll{flex:1;min-height:0;overflow:auto}
+body.editing #libBar{display:none!important}
+.lib-cat-h{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;margin:0;padding:12px 14px 6px;border:0;background:var(--panel);color:var(--muted);font-size:12px;font-weight:600;letter-spacing:1px;cursor:pointer;position:sticky;top:0;z-index:1;text-align:left}
+.lib-cat-h i{flex:none;width:6px;height:6px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg);margin-top:-3px}
+.lib-cat.closed .lib-cat-h i{transform:rotate(-45deg);margin-top:2px}
+.lib-cat.closed .lib-grid{display:none}
+.item[hidden],.lib-cat[hidden]{display:none!important}
+.lib-empty{margin:0;padding:16px 14px;color:var(--muted);font-size:12px}
+.lib-bar input:focus-visible,.lib-bar .btn:focus-visible,.lib-cat-h:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (hover:hover){.lib-cat-h:hover{color:var(--ink)}}
+.lib h4{margin:0;padding:12px 14px 6px;font-size:12px;color:var(--muted);font-weight:600;letter-spacing:1px}
+.lib-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:0 10px 6px}
+.lib h4{position:sticky;top:0;z-index:1;background:var(--panel)}
+.item{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px 6px;border:1px solid var(--line);
+  border-radius:8px;background:#fff;cursor:grab;user-select:none;touch-action:pan-y;transition:border-color .15s,transform .15s}
+.item-del{position:absolute;top:2px;right:2px;z-index:1;width:22px;height:22px;padding:0;border:0;border-radius:999px;background:#fff;color:var(--muted);font-size:15px;line-height:22px;cursor:pointer}
+@media (hover:hover){.item-del:hover{color:#9f3b32;background:var(--accent-soft)}}
+.item.dragging{border-color:var(--accent);opacity:.5}
+@media (hover:hover){.item:hover{border-color:var(--accent);transform:translateY(-1px)}}
+#ghost{position:fixed;left:0;top:0;z-index:30;pointer-events:none;opacity:.8;transform:translate(-50%,-50%);filter:drop-shadow(0 4px 10px rgba(40,30,20,.3))}
+#ghost svg{width:100%;height:100%;display:block;overflow:visible}
+.item svg{width:56px;height:44px}
+#drawLib{display:none}
+body.editing #lib,body.editing #lib3d{display:none!important}
+body.editing #drawLib{display:block}
+#drawLib .item{cursor:pointer;touch-action:manipulation}
+#drawLib .item.on{border-color:var(--accent);background:var(--accent-soft)}
+.item b{font-weight:500;font-size:12px}
+.item small{color:var(--muted);font-size:11px}
+.hint{padding:10px 14px 16px;color:var(--muted);font-size:12px}
+.hint-preview{display:none}
+body.fpreview .hint-plan{display:none}
+body.fpreview .hint-preview{display:inline}
+main{position:relative;overflow:hidden;background:var(--paper)}
+#plan{width:100%;height:100%;display:block;touch-action:none;cursor:default}
+#plan.panning{cursor:grabbing}
+#plan.tool-measure{cursor:crosshair}
+#plan .wall,#plan .opening{pointer-events:none}
+#plan.tool-demolish .wall{pointer-events:all;cursor:pointer}
+#plan.tool-demolish .wall:hover{fill:#d9894f}
+#plan.tool-select .room:hover{opacity:.82}
+#plan .furn{cursor:move}
+@media (hover:hover){#plan .furn:hover{filter:drop-shadow(0 0 2px rgba(181,101,58,.7))}}
+[data-handle]{cursor:pointer}
+[data-handle=size]{cursor:nwse-resize}
+.scalebar{position:absolute;left:14px;bottom:12px;background:rgba(255,253,249,.92);border:1px solid var(--line);
+  border-radius:8px;padding:6px 10px;font-size:12px;pointer-events:none}
+.scalebar .bar{height:6px;border:1.5px solid var(--ink);border-top:0;margin-top:3px}
+.modehint{position:absolute;left:50%;top:12px;transform:translateX(-50%);background:var(--ink);color:#fff;
+  padding:5px 12px;border-radius:20px;font-size:12px;opacity:0;transition:opacity .2s;pointer-events:none}
+.modehint.show{opacity:.9}
+footer{grid-column:1/-1;display:flex;gap:18px;align-items:center;padding:0 14px;background:var(--panel);overflow:hidden;white-space:nowrap;
+  border-top:1px solid var(--line);color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+#tip{overflow:hidden;text-overflow:ellipsis}
+footer b{color:var(--ink);font-weight:500}
+#panel section{padding:12px 16px;border-bottom:1px solid var(--line)}
+#panel h3{margin:0 0 8px;font-size:13px}
+#panel h3 small{color:var(--muted);font-weight:400;margin-left:6px}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+td{padding:4px 2px;border-bottom:1px dashed #eee6d9}
+td.r{text-align:right}
+tr.click{cursor:pointer}
+tr.click:hover td{background:#faf5ee}
+.sw{display:inline-block;width:12px;height:12px;border-radius:3px;border:1px solid rgba(0,0,0,.15);vertical-align:-2px;margin-right:6px}
+.total{display:flex;justify-content:space-between;margin-top:8px;font-size:14px}
+.total b{color:var(--accent)}
+.muted{color:var(--muted)}
+.form{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.form label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}
+.form label.full{grid-column:1/-1}
+.form input,.form select{border:1px solid var(--line);border-radius:6px;padding:5px 7px;background:#fff;width:100%}
+.form input[type=color]{padding:2px;height:30px}
+.actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.actions .btn{border:1px solid var(--line);background:#fff;font-size:13px}
+.actions .btn.primary,.actions .btn.primary:hover{background:var(--accent);color:#fff;font-size:13px}
+.actions .btn.primary:hover{background:#9f5530}
+.mats{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.mat{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:8px;padding:6px;background:#fff;cursor:pointer;text-align:left}
+.mat.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.mat i{width:26px;height:26px;border-radius:5px;border:1px solid rgba(0,0,0,.12);flex:none}
+.mat span{font-size:12px;line-height:1.3}
+.mat small{display:block;color:var(--muted)}
+.kbd{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:12px;color:var(--muted)}
+kbd{font:11px ui-monospace,Menlo,monospace;background:#f2ece2;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 5px;color:var(--ink)}
+.big{font-size:22px;font-weight:600;font-variant-numeric:tabular-nums}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px}
+.stats div{background:#faf6ef;border-radius:8px;padding:8px}
+.stats small{display:block;color:var(--muted);font-size:11px}
+#toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;
+  padding:8px 16px;border-radius:8px;opacity:0;transition:.25s;pointer-events:none;z-index:50}
+#toast.show{opacity:1;transform:translateX(-50%)}
+.edit-only{display:none!important}
+body.editing .edit-only{display:inline-block!important}
+body.editing #openPlans,body.editing #gFurn,body.editing #clearAll,
+body.editing [data-layer="furn"],body.editing [data-layer="wallSnap"]{display:none!important}
+body.fpreview .only2d{display:none!important}
+body.fpreview .seg .btn[data-view="2d"]{color:var(--ink)}
+body.fpreview .seg .pill{opacity:0}
+#plan.tool-wall,#plan.tool-win,#plan.tool-door,#plan.tool-slide,#plan.tool-bay{cursor:crosshair}
+body.editing #plan.tool-select .wall,body.editing #plan.tool-select .opening{pointer-events:all;cursor:pointer}
+#plan.tool-win .wall,#plan.tool-door .wall,#plan.tool-slide .wall,#plan.tool-bay .wall{pointer-events:all;cursor:crosshair}
+.modal{position:fixed;inset:0;z-index:40;background:rgba(40,30,20,.38);display:flex;align-items:center;justify-content:center;padding:24px}
+.modal[hidden]{display:none!important}
+.modal-card{background:var(--panel);border-radius:14px;width:min(920px,100%);max-height:min(82vh,780px);display:flex;flex-direction:column;box-shadow:0 18px 60px rgba(40,30,20,.28)}
+.modal-card.heady,.name-card{width:min(420px,100%)}
+.modal-bar{display:flex;align-items:center;gap:8px;padding:14px 16px;border-bottom:1px solid var(--line)}
+.modal-bar b{font-size:16px}
+.plan-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;padding:14px;overflow:auto;align-content:start}
+.plan-card{border:1px solid var(--line);border-radius:12px;background:#fff;padding:8px;cursor:pointer;text-align:left}
+.plan-card.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.plan-card svg{width:100%;height:132px;background:var(--paper);border-radius:8px;display:block}
+.plan-card .nm{display:block;margin-top:6px;font-weight:600}
+.plan-card .row{display:flex;gap:4px;margin-top:6px}
+.plan-card .row .btn{border:1px solid var(--line);background:#fff;padding:4px 8px}
+.name-card{padding:16px}
+.name-card h3{margin:0 0 10px}
+.name-card input{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#fff}
+.name-card .actions{margin-top:12px}
+.name-card p{margin:0;color:var(--muted);font-size:13px}
+.pack-card{width:min(640px,100%);padding:16px}
+.pack-card h3{margin:0 0 8px}
+.pack-card p{margin:0;color:var(--muted);font-size:13px}
+.pack-card .pack-guide{display:flex;align-items:center;gap:12px;margin-top:10px;padding:10px 12px;background:var(--accent-soft);border-radius:8px}
+.pack-card .pack-guide p{flex:1;margin:0;color:var(--ink);font-size:13px;line-height:1.5}
+.pack-card .pack-guide .btn{flex:none;background:#fff}
+#packBox,#furnBox{width:100%;min-height:240px;margin-top:10px;border:1px solid var(--line);border-radius:8px;padding:10px;background:#fff;font:12px/1.45 ui-monospace,Menlo,monospace;resize:vertical}
+/* ---------- 2D / 3D 切换 ---------- */
+.seg{position:relative;padding:3px}
+.seg .btn{position:relative;z-index:1;width:82px;transition:color .45s}
+.seg .btn:hover{background:transparent}
+.seg .pill{position:absolute;left:3px;top:3px;bottom:3px;width:82px;border-radius:6px;background:var(--accent);
+  box-shadow:0 2px 6px rgba(181,101,58,.35);transition:transform .5s cubic-bezier(.65,0,.35,1)}
+.seg .btn[data-view="2d"],body.m3d .seg .btn[data-view="3d"]{color:#fff}
+body.m3d .seg .btn[data-view="2d"]{color:var(--ink)}
+body.m3d .seg .pill{transform:translateX(84px)}
+body.busy .seg{pointer-events:none}
+body.m3d .only2d,body:not(.m3d) .only3d{display:none!important}
+.only2d,.only3d{animation:fadeIn .45s ease both}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+#plan{transition:opacity .45s ease,transform .45s ease}
+main.is3d #plan{opacity:0;pointer-events:none}
+.scalebar{transition:opacity .3s}
+main.is3d .scalebar{opacity:0}
+#view3d{position:absolute;inset:0;opacity:0;visibility:hidden;transition:opacity .45s ease,visibility 0s linear .45s}
+main.is3d #view3d{opacity:1;visibility:visible;transition:opacity .45s ease}
+#view3d canvas{display:block;outline:none}
+#walkOverlay{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(30,28,25,.35);z-index:3;cursor:pointer}
+#walkOverlay>div{background:var(--panel);border-radius:14px;padding:22px 28px;text-align:center;max-width:360px}
+#walkOverlay h3{margin:0 0 6px}
+#walkOverlay p{margin:4px 0;color:var(--muted)}
+#cross{position:absolute;left:50%;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;z-index:2;display:none;pointer-events:none}
+#cross:before,#cross:after{content:"";position:absolute;background:#fff;box-shadow:0 0 2px #000}
+#cross:before{left:6px;top:0;width:2px;height:14px}#cross:after{top:6px;left:0;height:2px;width:14px}
+#hint3d{position:absolute;left:50%;top:12px;transform:translateX(-50%);background:rgba(43,40,36,.82);color:#fff;border-radius:20px;
+  padding:5px 14px;font-size:12px;z-index:2;pointer-events:none;white-space:nowrap;transition:opacity .4s}
+main.animating #hint3d{opacity:0}
+.rlabel{font-size:12px;font-weight:600;color:#2b2824;background:rgba(255,253,249,.9);border:1px solid var(--line);
+  border-radius:12px;padding:2px 9px;white-space:nowrap;pointer-events:none}
+.rlabel small{font-weight:400;color:var(--muted);margin-left:4px}
+#roomList{padding:0 10px 6px;display:grid;grid-template-columns:1fr 1fr;gap:4px}
+#roomList button{display:flex;flex-direction:column;width:100%;border:1px solid var(--line);background:#fff;padding:5px 8px;border-radius:7px;cursor:pointer;text-align:left;line-height:1.3}
+#roomList button:hover{background:#f2ece2}
+#roomList button.on{background:var(--accent-soft);color:var(--accent)}
+#roomList small{color:var(--muted);font-variant-numeric:tabular-nums}
+.range{display:flex;align-items:center;gap:6px;padding:0 8px;color:var(--muted);font-size:12px}
+.range input{width:100px;accent-color:var(--accent)}
+.menu{position:relative}
+.menu summary{list-style:none;border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 12px}
+.menu summary::-webkit-details-marker{display:none}
+.menu-pop{position:absolute;right:0;top:calc(100% + 6px);display:flex;flex-direction:column;min-width:150px;background:#fff;
+  border:1px solid var(--line);border-radius:10px;padding:4px;box-shadow:0 10px 30px rgba(40,30,20,.14);z-index:20;animation:fadeIn .2s ease}
+.menu-pop .btn{text-align:left}
+.menu-pop .for-doc,.menu-pop .for-plan-only{display:none}
+body.tab-decor .menu-pop .for-doc,
+body.tab-plan .menu-pop .for-doc,
+body.tab-plan .menu-pop .for-plan-only,
+body.tab-preview .menu-pop .btn.for-preview{display:block}
+.range span{font-variant-numeric:tabular-nums;color:var(--ink)}
+/* ---------- 选中后的浮动工具条 ---------- */
+#fab{position:absolute;left:50%;bottom:16px;transform:translate(-50%,12px);display:flex;align-items:center;gap:4px;padding:5px;
+  background:rgba(255,253,249,.97);border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 26px rgba(40,30,20,.16);
+  z-index:4;opacity:0;visibility:hidden;transition:opacity .2s,transform .2s,visibility 0s linear .2s;max-width:calc(100% - 24px)}
+main.drawer-panel #fab{opacity:0;visibility:hidden}
+#fab.show{opacity:1;visibility:visible;transform:translate(-50%,0);transition:opacity .2s,transform .2s}
+#fab .name{padding:0 8px 0 6px;font-weight:600;max-width:9em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#fab .btn{border:1px solid transparent}
+#fab .sep{width:1px;align-self:stretch;margin:4px 2px;background:var(--line)}
+/* ---------- 触屏漫游摇杆 ---------- */
+#joy{position:absolute;left:28px;bottom:28px;width:130px;height:130px;border-radius:50%;background:rgba(255,253,249,.25);
+  border:2px solid rgba(255,255,255,.7);box-shadow:0 4px 18px rgba(0,0,0,.18);z-index:3;display:none;touch-action:none;backdrop-filter:blur(3px)}
+#joy i{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;background:rgba(255,253,249,.92);
+  box-shadow:0 2px 8px rgba(0,0,0,.25);pointer-events:none}
+#walkExit{position:absolute;right:16px;bottom:28px;z-index:3;display:none}
+/* ---------- 触屏：加大点击区域 ---------- */
+@media (pointer:coarse){
+  body{font-size:14px}
+  header{padding:8px 12px;gap:8px}
+  .grp{padding:3px;border-radius:10px}
+  .btn{padding:8px 12px;min-height:38px;border-radius:8px}
+  .seg .btn,.seg .pill{width:92px}
+  body.m3d .seg .pill{transform:translateX(94px)}
+  .menu summary{padding:9px 14px}
+  .menu-pop .btn{padding:11px 14px}
+  .item{padding:10px 4px 8px}
+  .form input,.form select{font-size:16px;padding:8px 9px}
+  .form input[type=color]{height:40px}
+  .actions .btn,#fab .btn{min-height:42px;padding:9px 14px}
+  td{padding:7px 2px}
+  #roomList button{padding:8px 10px}
+  .mat{padding:9px 8px}
+  .range input{width:120px!important}
+}
+/* ---------- 竖屏 / 窄屏（如 iPad 竖握）：侧栏改为抽屉 ---------- */
+/* ---------- 宽屏：左右面板可收起 ---------- */
+@media (min-width:1101px){
+  .app{transition:grid-template-columns .3s cubic-bezier(.3,.7,.3,1)}
+  .app.hide-lib{grid-template-columns:0 minmax(0,1fr) 300px}
+  .app.hide-panel{grid-template-columns:236px minmax(0,1fr) 0}
+  .app.hide-lib.hide-panel{grid-template-columns:0 minmax(0,1fr) 0}
+  .app.hide-lib aside.lib,.app.hide-panel aside.right{overflow:hidden;border:0}
+  aside{overflow-x:hidden}
+  aside.lib>div{min-width:220px} #panel{min-width:284px}   /* 收起动画中内容不被挤压变形 */
+}
+.narrow-only{display:none!important}
+@media (max-width:1100px){
+  .grp.narrow-only{display:flex!important}
+  .btn.narrow-only,#fab .btn.narrow-only{display:inline-block!important}
+  .app{grid-template-columns:minmax(0,1fr)}
+  main,aside.lib,aside.right{grid-row:2;grid-column:1}
+  aside.lib,aside.right{position:relative;z-index:6;width:min(320px,86vw);transition:transform .3s cubic-bezier(.3,.7,.3,1),box-shadow .3s}
+  aside.lib{justify-self:start;transform:translateX(-110%)}
+  aside.right{justify-self:end;transform:translateX(110%)}
+  aside.open{transform:none;box-shadow:0 0 30px rgba(40,30,20,.18)}
+  .lib-grid{grid-template-columns:1fr 1fr 1fr}
+  .brand span,footer .only2d{display:none!important}
+}
+body{display:flex;flex-direction:column}
+#top{display:flex;align-items:center;gap:12px;flex:none;min-height:48px;padding:calc(8px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 8px calc(16px + env(safe-area-inset-left));background:var(--panel);border-bottom:1px solid var(--line)}
+.shell-name{flex:none;font-size:14px;font-weight:600;letter-spacing:.4px;white-space:nowrap}
+#tabs{display:flex;gap:2px;flex:0 1 auto;min-width:0;padding:2px;background:#fff;border:1px solid var(--line);border-radius:8px}
+#tabs .tab{flex:none;padding:4px 12px;border:0;border-radius:6px;background:transparent;color:var(--muted);cursor:pointer;font-size:13px;font-weight:500;white-space:nowrap;transition:background .2s,color .2s}
+#tabs .tab:hover{color:var(--ink);background:var(--bg)}
+#tabs .tab.on,#tabs .tab.on:hover{background:var(--accent);color:#fff}
+#tabs .tab:focus-visible,.plan-card:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.top-end{margin-left:auto;display:flex;align-items:center;gap:8px;flex:none}
+#homeLang{flex:none}
+#gate{overflow:auto}
+.gate-wrap{width:min(1080px,100%);margin:0 auto;padding:20px 20px 32px}
+.gate-bar{display:flex;align-items:flex-end;gap:16px;padding:0 14px 4px}
+.gate-bar h1{margin:0;font-size:20px;font-weight:600;letter-spacing:.3px}
+#gateHint{margin:2px 0 0;color:var(--muted);font-size:13px}
+#gateList{grid-template-columns:repeat(3,minmax(0,1fr))}
+#gateList .plan-card svg{height:auto;aspect-ratio:1}
+@media (max-width:720px){
+  #gateList{grid-template-columns:1fr}
+  #gateList .plan-card svg{aspect-ratio:4/3;max-height:280px}
+}
+.plan-card{transition:border-color .2s,box-shadow .2s}
+@media (hover:hover){.plan-card:hover{border-color:var(--accent)}}
+@media (prefers-reduced-motion:reduce){#tabs .tab,.plan-card{transition:none}}
+.app{height:auto;flex:1;min-height:0;padding-top:0}
+#gate{display:none;flex:1;min-height:0;flex-direction:column;background:var(--bg)}
+body.gate #gate{display:flex}
+body.gate .app{display:none}
+#gateList{flex:1;overflow:auto}
+#openPlans,#furnPreview,#langSel{display:none!important}
+body.tab-decor .edit-only{display:none!important}
+body.tab-preview #saveDoc{display:none!important}
+body.tab-plan #viewSeg,body.tab-plan #clearAll,
+body.tab-plan #tools [data-tool="select"],body.tab-plan #tools [data-tool="measure"]{display:none!important}
+body.tab-plan .app{grid-template-columns:236px minmax(0,1fr) 300px}
+body.tab-plan .app.hide-lib{grid-template-columns:0 minmax(0,1fr) 300px}
+body.tab-plan .app.hide-panel{grid-template-columns:236px minmax(0,1fr) 0}
+body.tab-plan .app.hide-lib.hide-panel{grid-template-columns:0 minmax(0,1fr) 0}
+body.tab-preview .brand,body.tab-preview #homeBack,body.tab-preview .bar-tools .cluster,
+body.tab-preview #lib3d{display:none!important}
+header{flex-direction:column;align-items:stretch;gap:0;padding:0}
+.bar-main,.bar-tools{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:6px 12px}
+.bar-tools{display:grid;grid-template-columns:1fr auto 1fr;background:#faf7f2;border-top:1px solid var(--line)}
+.bar-tools-center{grid-column:2;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:8px;min-width:0}
+#tgLib{grid-column:1;justify-self:start}
+#tgPanel{grid-column:3;justify-self:end}
+.cluster{display:flex;align-items:center;gap:6px}
+.cluster-name{color:var(--muted);font-size:11px;white-space:nowrap}
+.mode-tag{flex:none;font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent)}
+body.tab-plan .mode-tag{background:#e4eeef;color:var(--teal)}
+.mode-tag.for-preview{display:none;background:#f2ece2;color:var(--ink)}
+body.tab-preview .mode-tag.for-preview{display:flex}
+.cluster.for-decor,.mode-tag.for-decor,.btn.for-decor,.btn.for-preview{display:none}
+body.tab-decor .cluster.for-decor,body.tab-decor .mode-tag.for-decor{display:flex}
+body.tab-decor .btn.for-decor,body.tab-preview .btn.for-preview{display:inline-block}
+.cluster.for-plan,.mode-tag.for-plan{display:none}
+body.tab-plan .cluster.for-plan,body.tab-plan .mode-tag.for-plan{display:flex}
+.bar-main .btn:focus-visible,.bar-tools .btn:focus-visible,.stage-corner .btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.stage-corner{position:absolute;top:12px;z-index:5;display:none;align-items:center;gap:6px}
+.stage-corner.left{left:12px}
+.stage-corner.right{right:12px}
+.stage-corner.zoom{top:auto;right:12px;bottom:12px;left:auto}
+body.tab-decor .stage-corner.zoom,body.tab-plan .stage-corner.zoom{display:flex}
+.stage-corner .grp{background:rgba(255,253,249,.96);box-shadow:0 6px 18px rgba(40,30,20,.12)}
+body.tab-decor .stage-corner.for-decor,body.tab-plan .stage-corner.right{display:flex}
+.btn.edge{border:1px solid var(--line);background:#fff}
+.side-toggle{border:1px solid var(--line);background:#fff}
+.side-toggle.on{background:var(--accent-soft);color:var(--accent);border-color:transparent}
+@media (pointer:coarse){header{padding:0}}
+@media (max-width:1100px){
+  body.tab-plan .app,body.tab-plan .app.hide-lib,body.tab-plan .app.hide-panel,body.tab-plan .app.hide-lib.hide-panel{grid-template-columns:minmax(0,1fr)}
+}
+</style>
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+}}
+</script>
+</head>
+<body class="gate tab-decor">
+<div id="top">
+  <div class="shell-name" data-en="Floor plan">户型装修</div>
+  <div id="tabs" role="tablist">
+    <button class="tab on" type="button" role="tab" data-tab="decor" aria-selected="true" data-en="Decoration">房间装修</button>
+    <button class="tab" type="button" role="tab" data-tab="plan" aria-selected="false" data-en="Edit plan">户型编辑</button>
+    <button class="tab" type="button" role="tab" data-tab="preview" aria-selected="false" data-en="Furniture preview">家具预览</button>
+  </div>
+  <div class="top-end">
+    <button class="btn" id="exportAll" data-en="Export all data">导出全部</button>
+    <button class="btn" id="importAll" data-en="Import all data">导入全部</button>
+    <input type="file" id="libFile" accept=".json,application/json" hidden>
+    <div class="grp" id="homeLang" role="group" aria-label="Language / 语言">
+      <button class="btn chip" data-lang="zh" title="简体中文">简</button>
+      <button class="btn chip" data-lang="zht" title="繁體中文">繁</button>
+      <button class="btn chip" data-lang="en" title="English">EN</button>
+    </div>
+  </div>
+</div>
+<div id="gate">
+  <div class="gate-wrap">
+    <div class="gate-bar">
+      <div>
+        <h1 id="gateTitle">房间装修</h1>
+        <p id="gateHint">点一个房间，进入布置</p>
+      </div>
+      <span class="spacer"></span>
+      <button class="btn" id="homeImport" data-en="AI trace">AI 识图</button>
+      <button class="btn primary" id="homeNew" hidden data-en="New plan">新增户型</button>
+    </div>
+    <div id="gateList" class="plan-grid"></div>
+  </div>
+</div>
+<div class="app">
+  <header>
+    <div class="bar-main">
+      <button class="btn" id="homeBack" data-en="Back to list">返回列表</button>
+      <span class="mode-tag for-decor" data-en="Room">房间</span>
+      <span class="mode-tag for-plan" data-en="Plan">户型</span>
+      <span class="mode-tag for-preview" data-en="Furniture preview">家具预览</span>
+      <div class="brand"><b id="planTitle"></b><span id="subtitle"></span></div>
+      <div class="spacer"></div>
+      <button class="btn primary" id="saveDoc" hidden>保存</button>
+      <button class="btn" id="openPlans" data-en="Plans">户型</button>
+      <button class="btn" id="furnPreview" data-en="Furniture preview">家具预览</button>
+      <div class="grp" id="langSel" role="group" aria-label="Language / 语言">
+        <button class="btn chip" data-lang="zh" title="简体中文">简</button>
+        <button class="btn chip" data-lang="zht" title="繁體中文">繁</button>
+        <button class="btn chip" data-lang="en" title="English">EN</button>
+      </div>
+      <button class="btn for-preview edge" id="furnAi" data-en="AI furniture">AI 生成</button>
+      <button class="btn edge" id="fullscreen" title="全屏 (Shift+F)">全屏</button>
+      <details class="menu"><summary class="btn" data-en="File">文件</summary>
+        <div class="menu-pop">
+          <button class="btn for-doc" id="exportPng" data-en="Export image">导出图片</button>
+          <button class="btn for-doc" id="exportJson" data-en="Export room JSON">导出房间 JSON</button>
+          <button class="btn for-doc" id="importJson" data-en="Import room">导入房间</button>
+          <button class="btn danger for-plan-only" id="reset" data-en="Reset to default">重置为默认方案</button>
+          <button class="btn for-preview" id="exportFurn" data-en="Export custom furniture">导出自定义家具</button>
+          <button class="btn for-preview" id="importFurn" data-en="Import custom furniture">导入自定义家具</button>
+        </div></details>
+      <input type="file" id="fileIn" accept=".json,application/json" hidden>
+      <input type="file" id="furnLibFile" accept=".json,application/json" hidden>
+    </div>
+    <div class="bar-tools">
+      <button class="btn chip side-toggle" id="tgLib" data-en="Library">家具库</button>
+      <div class="bar-tools-center">
+      <div class="cluster only3d">
+        <span class="cluster-name" data-en="Move">浏览</span>
+        <div class="grp" id="modes3d">
+          <button class="btn on" data-mode="orbit" data-en="Orbit">鸟瞰</button>
+          <button class="btn" data-mode="walk" data-en="Walk">漫游</button>
+        </div>
+        <div class="grp">
+          <button class="btn" id="vIso" data-en="Iso">斜视</button>
+          <button class="btn" id="vTop" data-en="Top">俯视</button>
+        </div>
+      </div>
+      <div class="cluster">
+        <span class="cluster-name" data-en="History">历史</span>
+        <div class="grp" id="hist">
+          <button class="btn" id="undo" title="撤销 (Ctrl+Z)" data-en-title="Undo (Ctrl+Z)" data-en="Undo">撤销</button>
+          <button class="btn" id="redo" title="重做 (Ctrl+Shift+Z)" data-en-title="Redo (Ctrl+Shift+Z)" data-en="Redo">重做</button>
+          <button class="btn danger for-decor" id="clearAll" title="清空所有家具家电（可撤销）" data-en-title="Remove all furniture and appliances (undoable)" data-en="Clear">清空布置</button>
+        </div>
+      </div>
+      <div class="cluster only2d">
+        <span class="cluster-name" data-en="Layers">图层</span>
+        <div class="grp" id="layers">
+          <button class="btn chip on" data-layer="dims" data-en="Dims">尺寸</button>
+          <button class="btn chip on" data-layer="labels" data-en="Labels">房间名</button>
+          <button class="btn chip on for-decor" data-layer="furn" data-en="Furniture">家具</button>
+          <button class="btn chip" data-layer="grid" data-en="Grid">网格</button>
+          <button class="btn chip" data-layer="bearing" data-en="Bearing walls">承重墙</button>
+          <button class="btn chip on for-decor" data-layer="wallSnap" title="拖动家具时贴墙吸附" data-en-title="Snap furniture to walls while dragging" data-en="Wall snap">贴墙吸附</button>
+        </div>
+      </div>
+      <div class="cluster only3d">
+        <span class="cluster-name" data-en="Walls">墙体</span>
+        <div class="grp">
+          <button class="btn chip on" data-cut="2.8" data-en="Full walls">全高墙</button>
+          <button class="btn chip" data-cut="1.2" data-en="Cut walls">剖切墙</button>
+        </div>
+      </div>
+      <div class="cluster only3d">
+        <span class="cluster-name" data-en="Scene">场景</span>
+        <div class="grp" id="toggles3d">
+          <button class="btn chip on" data-t="furn" data-en="Furniture">家具</button>
+          <button class="btn chip on" data-t="labels" data-en="Labels">房间名</button>
+          <button class="btn chip" data-t="night" data-en="Night">夜景</button>
+        </div>
+        <label class="range"><span data-en="Sun">日照</span> <input type="range" id="sun" min="7" max="18" step=".25" value="10" style="width:84px"><span id="sunT">10:00</span></label>
+      </div>
+      </div>
+      <button class="btn chip side-toggle" id="tgPanel" data-en="Properties">属性</button>
+    </div>
+  </header>
+
+  <aside class="lib">
+    <div class="lib-bar" id="libBar">
+      <input id="libSearch" type="search" placeholder="搜索家具" autocomplete="off" enterkeyhint="search" aria-label="搜索家具">
+      <button type="button" class="btn" id="libFold" title="全部折叠房间">全部折叠</button>
+    </div>
+    <div class="lib-scroll">
+    <div id="lib3d" class="only3d">
+      <h4 data-en="Rooms · click to fly there">房间 · 点击飞到该房间</h4>
+      <div id="roomList"></div>
+    </div>
+    <div id="lib"></div>
+    <div id="drawLib"></div>
+    </div>
+  </aside>
+
+  <main id="stage">
+    <div class="stage-corner left for-decor">
+      <span class="cluster-name" data-en="View">视图</span>
+      <div class="grp seg" id="viewSeg" title="切换 2D / 3D (T)" data-en-title="Switch 2D / 3D (T)">
+        <span class="pill"></span>
+        <button class="btn" data-view="2d" data-en="2D Plan">2D 平面</button>
+        <button class="btn" data-view="3d" data-en="3D Scene">3D 场景</button>
+      </div>
+    </div>
+    <div class="stage-corner zoom only2d">
+      <div class="grp">
+        <button class="btn" id="zoomOut" title="缩小" data-en-title="Zoom out">−</button>
+        <button class="btn" id="zoomIn" title="放大" data-en-title="Zoom in">＋</button>
+        <button class="btn" id="fit" title="适应窗口 (F)" data-en-title="Fit to window (F)" data-en="Fit">适应</button>
+        <button class="btn" id="s60" title="按 1:60 显示（与原图同比例）" data-en-title="Show at 1:60 (same scale as the original plan)">1:60</button>
+        <button class="btn" id="s100" title="按 1:100 显示" data-en-title="Show at 1:100">1:100</button>
+      </div>
+    </div>
+    <div class="stage-corner right for-decor only2d">
+      <span class="cluster-name" data-en="Edit">操作</span>
+      <div class="grp" id="roomTools">
+        <button class="btn on" data-tool="select" title="选择 / 移动 (V)" data-en-title="Select / Move (V)" data-en="Select">选择</button>
+        <button class="btn" data-tool="measure" title="测量 (M)" data-en-title="Measure (M)" data-en="Measure">测量</button>
+      </div>
+    </div>
+    <svg id="plan" class="tool-select" font-family="-apple-system,'PingFang SC','Microsoft YaHei',sans-serif">
+      <defs id="defs"></defs>
+      <g id="gGrid"></g>
+      <g id="gRooms"></g>
+      <g id="gFurn"></g>
+      <g id="gWalls"></g>
+      <g id="gOpen"></g>
+      <g id="gLabels" pointer-events="none"></g>
+      <g id="gDims" pointer-events="none"></g>
+      <g id="gMeasure" pointer-events="none"></g>
+      <g id="gSel"></g>
+    </svg>
+    <div id="view3d">
+      <div id="walkOverlay"><div><h3 data-en="Walk mode">漫游模式</h3>
+        <p id="wo1"></p>
+        <p id="wo2"></p>
+        <p id="wo3"></p></div></div>
+      <div id="cross"></div>
+      <div id="joy"><i></i></div>
+      <button class="btn primary" id="walkExit" data-en="Exit walk">退出漫游</button>
+      <div id="hint3d"></div>
+    </div>
+    <div class="scalebar" id="scalebar"><span id="sbText">1 m</span><div class="bar" id="sbBar"></div></div>
+    <div class="modehint" id="modehint"></div>
+    <div id="fab"></div>
+  </main>
+
+  <aside class="right"><div id="panel"></div></aside>
+
+  <footer>
+    <span class="only2d">X <b id="cx">—</b></span><span class="only2d">Y <b id="cy">—</b></span>
+    <span class="only2d"><span data-en="Scale">当前比例</span> <b id="ratio">—</b></span>
+    <span id="hover" class="only2d"></span>
+    <span class="spacer"></span>
+    <span id="tip"></span>
+  </footer>
+</div>
+<div id="toast"></div>
+<div id="roomPick" class="modal" hidden>
+  <div class="modal-card">
+    <div class="modal-bar">
+      <b data-en="Choose a floor plan">选择户型</b>
+      <span class="spacer"></span>
+      <button class="btn" id="roomPickClose" data-en="Close">关闭</button>
+    </div>
+    <p class="hint" data-en="A room is copied from the floor plan you pick. Later edits stay on the room.">选一份户型，复制成一个可布置的房间。之后的修改只留在这个房间里。</p>
+    <div id="roomPickList" class="plan-grid"></div>
+  </div>
+</div>
+<div id="planModal" class="modal" hidden>
+  <div class="modal-card">
+    <div class="modal-bar">
+      <b data-en="Floor plans">户型</b>
+      <span class="spacer"></span>
+      <button class="btn primary" id="planAdd" data-en="New plan">新增户型</button>
+      <button class="btn" id="planClose" data-en="Close">关闭</button>
+    </div>
+    <div id="planList" class="plan-grid"></div>
+  </div>
+</div>
+<div id="leaveDlg" class="modal" hidden>
+  <div class="modal-card name-card">
+    <h3 id="leaveTitle">保存修改？</h3>
+    <p id="leaveHint"></p>
+    <div class="actions">
+      <button class="btn primary" type="button" id="leaveSave">保存</button>
+      <button class="btn" type="button" id="leaveDiscard">不保存</button>
+      <button class="btn" type="button" id="leaveStay">继续编辑</button>
+    </div>
+  </div>
+</div>
+<div id="nameDlg" class="modal" hidden>
+  <form class="modal-card name-card" id="nameForm">
+    <h3 data-en="Floor plan name">户型名字</h3>
+    <input id="planNameInput" maxlength="40" autocomplete="off">
+    <div class="actions">
+      <button class="btn primary" type="submit" data-en="Save">保存</button>
+      <button class="btn" type="button" id="nameCancel" data-en="Cancel">取消</button>
+    </div>
+  </form>
+</div>
+<div id="importDlg" class="modal" hidden>
+  <form class="modal-card pack-card" id="importForm">
+    <h3 data-en="AI trace">AI 识图</h3>
+    <div class="pack-guide">
+      <p data-en="Copy the prompt and send it with the floor-plan image to an AI that can see pictures, then paste the JSON it returns below. Results differ between models and are for reference only.">复制提示词，连同户型图交给能看图的 AI，再把返回的 JSON 贴到下面。不同模型生成的效果会有差异，仅供参考。</p>
+      <button class="btn" type="button" id="copyPrompt" data-en="Copy prompt">复制提示词</button>
+    </div>
+    <textarea id="packBox" spellcheck="false" placeholder='{"kind":"huxing-pack","version":1,...}'></textarea>
+    <div class="actions">
+      <button class="btn" type="button" id="packFileBtn" data-en="Choose file">选择文件</button>
+      <span class="spacer"></span>
+      <button class="btn primary" type="submit" data-en="Import">导入</button>
+      <button class="btn" type="button" id="packCancel" data-en="Cancel">取消</button>
+    </div>
+  </form>
+</div>
+<input type="file" id="packFile" accept=".json,application/json" hidden>
+<div id="furnAiDlg" class="modal" hidden>
+  <form class="modal-card pack-card" id="furnAiForm">
+    <h3 data-en="AI furniture">AI 生成</h3>
+    <div class="pack-guide">
+      <p data-en="Copy the prompt and send it with a furniture photo or a short description to an AI that can see pictures, then paste the JSON it returns below. A reused shape, or a new one with parts, is added under Custom and can be removed. New shapes are drawn from their parts. Results differ between models and are for reference only.">复制提示词，连同家具照片或一句描述交给能看图的 AI，再把返回的 JSON 贴到下面。沿用已有造型，或带零件的新造型，都会放进「自定义」，可以再删掉。新造型按零件来画。不同模型生成的效果会有差异，仅供参考。</p>
+      <button class="btn" type="button" id="copyFurnPrompt" data-en="Copy prompt">复制提示词</button>
+    </div>
+    <textarea id="furnBox" spellcheck="false" placeholder='{"kind":"furniture-drawing","version":1,...}'></textarea>
+    <div class="actions">
+      <button class="btn" type="button" id="furnFileBtn" data-en="Choose file">选择文件</button>
+      <span class="spacer"></span>
+      <button class="btn primary" type="submit" data-en="Import">导入</button>
+      <button class="btn" type="button" id="furnAiClose" data-en="Cancel">取消</button>
+    </div>
+  </form>
+</div>
+<input type="file" id="furnFile" accept=".json,application/json" hidden>
+
+<script src="js/pack-prompt.js"></script>
+<script src="js/furn-prompt.js"></script>
+<script src="js/plan.js"></script>
+<script src="js/furniture.js"></script>
+<script src="js/editor.js"></script>
+<script type="module" src="js/view3d.js"></script>
+</body>
+</html>

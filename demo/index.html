@@ -1,0 +1,2693 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>栖居 · 智能客厅</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600&family=Noto+Serif+SC:wght@500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --paper: #f3eee6;
+      --paper-2: #e7e0d4;
+      --ink: #1c1915;
+      --muted: #6f675e;
+      --line: #ddd4c6;
+      --accent: #b85c38;
+      --sage: #1a4542;
+      --shadow: 0 18px 50px rgba(48, 32, 18, 0.12);
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      display: flex;
+      overflow: hidden;
+      background: #d9d1c4;
+      color: var(--ink);
+      font-family: "Noto Sans SC", "PingFang SC", "Songti SC", sans-serif;
+      font-size: 14px;
+    }
+    #stage { position: relative; flex: 1; min-width: 0; background: #cfc6b8; }
+    #stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    #stage::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      box-shadow: inset 0 0 90px rgba(28, 25, 21, 0.14);
+    }
+    #caption {
+      position: absolute;
+      left: 18px;
+      bottom: 16px;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 10px 14px 11px;
+      background: rgba(243, 238, 230, 0.92);
+      box-shadow: var(--shadow);
+    }
+    #caption b {
+      font-family: "Noto Serif SC", "Songti SC", serif;
+      font-weight: 600;
+      font-size: 15px;
+    }
+    #caption span { color: var(--muted); font-size: 12px; }
+
+    #panel {
+      width: 380px;
+      height: 100%;
+      overflow: auto;
+      background: var(--paper);
+      color: var(--ink);
+      border-left: 1px solid rgba(28, 25, 21, 0.08);
+      box-shadow: -12px 0 40px rgba(48, 32, 18, 0.06);
+    }
+    #panel header {
+      position: sticky;
+      top: 0;
+      z-index: 3;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 18px 18px 14px;
+      background: rgba(243, 238, 230, 0.94);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--line);
+    }
+    .brand { display: flex; gap: 12px; align-items: center; }
+    .seal {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--ink);
+      font-family: "Noto Serif SC", serif;
+      font-size: 22px;
+      line-height: 1;
+    }
+    h1 {
+      margin: 0;
+      font-family: "Noto Serif SC", serif;
+      font-size: 26px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+    }
+    .brand p, .note, footer { margin: 0; color: var(--muted); }
+    .brand p { font-size: 12px; letter-spacing: 0.04em; }
+    .climate { text-align: right; }
+    .climate strong {
+      display: block;
+      font-family: "Noto Serif SC", serif;
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: -0.03em;
+      line-height: 1;
+    }
+    .climate span { font-size: 12px; color: var(--muted); }
+    section { padding: 16px 18px 4px; }
+    .sec-head, h2 {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+    }
+    h2 {
+      margin: 0 0 10px;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.22em;
+      color: var(--muted);
+    }
+    #overview, .modes button, .seg button, .device-head, .switch {
+      font: inherit;
+      color: inherit;
+      cursor: pointer;
+    }
+    #overview {
+      border: 0;
+      background: transparent;
+      color: var(--accent);
+      letter-spacing: 0.12em;
+      font-size: 12px;
+      padding: 0;
+    }
+    .seg, .modes { display: grid; gap: 8px; }
+    .seg { grid-template-columns: repeat(3, 1fr); }
+    .seg.two { grid-template-columns: 1fr 1fr; }
+    .modes { grid-template-columns: 1fr 1fr; }
+    .seg button, .modes button {
+      border: 1px solid var(--line);
+      background: transparent;
+      padding: 9px 8px;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+    .modes button { text-align: left; padding: 10px 12px; }
+    .modes button small, .seg button small {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: 0;
+    }
+    .seg button.is-active, .modes button.is-active {
+      background: var(--ink);
+      color: var(--paper);
+      border-color: var(--ink);
+    }
+    .seg button.is-active small, .modes button.is-active small { color: rgba(243, 238, 230, 0.72); }
+    .note { min-height: 1.4em; padding: 8px 0 2px; font-size: 12px; }
+    .device {
+      border-top: 1px solid var(--line);
+      padding: 8px 0 10px;
+    }
+    .device.is-active {
+      background: rgba(184, 92, 56, 0.07);
+      box-shadow: inset 2px 0 0 var(--accent);
+      margin: 0 -18px;
+      padding-left: 18px;
+      padding-right: 18px;
+    }
+    .device-top { display: flex; align-items: center; gap: 8px; }
+    .device-top .device-head { width: auto; flex: 1; }
+    .device-head {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 28px 1fr auto;
+      gap: 8px;
+      align-items: center;
+      border: 0;
+      background: transparent;
+      text-align: left;
+      padding: 4px 0;
+    }
+    .device-head i {
+      font-family: "Noto Serif SC", serif;
+      font-style: normal;
+      color: var(--accent);
+      font-size: 13px;
+    }
+    .device-head strong { display: block; font-weight: 600; }
+    .device-head small { color: var(--muted); font-size: 12px; }
+    .status { font-size: 12px; color: var(--sage); font-style: normal; }
+    .switch {
+      border: 1px solid var(--line);
+      background: transparent;
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 12px;
+      margin-left: 8px;
+    }
+    .switch[aria-pressed="true"] {
+      background: var(--ink);
+      color: var(--paper);
+      border-color: var(--ink);
+    }
+    .head-side { display: flex; align-items: center; gap: 6px; }
+    .slider { display: block; margin: 6px 0 8px; }
+    .slider span {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .slider b { color: var(--ink); font-weight: 500; }
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 2px;
+      border-radius: 99px;
+      background: var(--line);
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--ink);
+      border: 2px solid var(--paper);
+      box-shadow: 0 0 0 1px var(--ink);
+      cursor: pointer;
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border: 2px solid var(--paper);
+      border-radius: 50%;
+      background: var(--ink);
+      box-shadow: 0 0 0 1px var(--ink);
+      cursor: pointer;
+    }
+    input.cct {
+      background: linear-gradient(90deg, #ffb15a, #fff1dc 55%, #d5e4ff) !important;
+      height: 4px;
+    }
+    input.temp {
+      background: linear-gradient(90deg, #8eb4d4, #e7d7c4 45%, #c4623a) !important;
+      height: 4px;
+    }
+    .sensor-read {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      padding: 4px 0 8px;
+    }
+    .sensor-read strong {
+      font-family: "Noto Serif SC", serif;
+      font-size: 32px;
+      font-weight: 600;
+    }
+    footer {
+      padding: 8px 18px 22px;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    button:focus-visible, input:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    #boot {
+      position: fixed;
+      inset: 0;
+      z-index: 5;
+      display: grid;
+      place-items: center;
+      background: var(--paper);
+      transition: opacity 0.5s ease;
+    }
+    #boot.is-done { opacity: 0; pointer-events: none; }
+    #boot div { text-align: center; }
+    #boot strong {
+      font-family: "Noto Serif SC", serif;
+      font-size: 36px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+    }
+    #boot p { color: var(--muted); margin: 8px 0 0; }
+    @media (max-width: 920px) {
+      body { flex-direction: column; }
+      #stage { flex: none; width: 100%; height: 52%; }
+      #panel { width: 100%; height: 48%; border-left: 0; border-top: 1px solid var(--line); }
+      #caption { left: 10px; bottom: 10px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #boot { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <div id="boot"><div><strong>栖居</strong><p id="bootLine">正在铺地板、摆沙发、装灯。</p></div></div>
+  <div id="stage">
+    <div id="caption">
+      <b>三室一厅</b>
+      <span id="capLine">白天</span>
+    </div>
+  </div>
+  <aside id="panel">
+    <header>
+      <div class="brand">
+        <div class="seal">栖</div>
+        <div>
+          <h1>栖居</h1>
+          <p>客厅、厨房、卫生间、三间卧室</p>
+        </div>
+      </div>
+      <div class="climate">
+        <strong id="roomTemp">28°</strong>
+        <span id="roomMeta">湿度 — · — W</span>
+      </div>
+    </header>
+    <section>
+      <h2>游览</h2>
+      <div class="seg two" id="navSeg">
+        <button type="button" data-nav="orbit">环绕<small>360° 旋转与平移</small></button>
+        <button type="button" data-nav="walk">漫游<small>眼高 1.62 m</small></button>
+      </div>
+      <p class="note" id="navNote"></p>
+    </section>
+    <section>
+      <div class="sec-head"><h2>天光</h2><button id="overview" type="button">回到全景</button></div>
+      <div class="seg" id="timeSeg">
+        <button type="button" data-time="day">白天<small>西窗顺光</small></button>
+        <button type="button" data-time="dusk">黄昏<small>低角度暖光</small></button>
+        <button type="button" data-time="night">夜晚<small>只剩室内灯</small></button>
+      </div>
+      <p class="note" id="timeNote"></p>
+    </section>
+    <section>
+      <h2>场景</h2>
+      <div class="modes" id="modeBar">
+        <button type="button" data-mode="home">回家<small>暖光，窗帘半开</small></button>
+        <button type="button" data-mode="away">离家<small>灯灭，摄像头留守</small></button>
+        <button type="button" data-mode="cinema">影院<small>拉帘，屏幕与音箱</small></button>
+        <button type="button" data-mode="sleep">睡眠<small>夜灯，空调 26°</small></button>
+      </div>
+      <p class="note" id="modeNote"></p>
+    </section>
+    <section>
+      <h2>设备</h2>
+      <div id="deviceList"></div>
+    </section>
+    <footer>环绕：左键旋转、右键平移、滚轮缩放，可绕整圈。漫游：WASD 走动，鼠标转向，眼高 1.62 米。双击空白回到全景。键盘 1–4 切换场景。</footer>
+  </aside>
+
+  <script>
+    window.addEventListener("error", (event) => {
+      const line = document.getElementById("bootLine");
+      const boot = document.getElementById("boot");
+      if (!line || boot?.dataset.ready) return;
+      line.textContent = "没能载入 three.js。请联网后在本目录执行 python3 -m http.server，再用浏览器打开提示的地址。";
+      console.error(event.error || event.message);
+    });
+  </script>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module">
+    import * as THREE from "three";
+    import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+    const RH = 2.8, WT = 0.12;
+    const SILL = 0.9, WIN_H = 2.12, DOOR_H = 2.08;
+    const XW = 0, XK = 2.3, XCw = 2.16, XCe = 4.66, XI = 3.4, XAw = 5.12, XBe = 6.85, XAe = 7.78;
+    const ZCn = -2.26, ZN = 0, ZCs = 0.65, ZBs = 3.5, ZbathN = 4.55, ZAs = 6.42, ZKn = 5.18, ZS = 7.46;
+    const SOFA = { x: 0.72, z: 1.55 };
+    const TABLE = { x: 1.72, z: 1.55 };
+    const LAMP = { x: 1.05, z: 3.05 };
+    const TVP = { x: 3.18, z: 1.55 };
+    const REDUCE = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    const OUTDOOR = {
+      day: { temp: 30, humidity: 58, line: "白天 · 室外 30°C" },
+      dusk: { temp: 24, humidity: 64, line: "黄昏 · 室外 24°C" },
+      night: { temp: 19, humidity: 70, line: "夜晚 · 室外 19°C" },
+    };
+    const TIME_NOTE = {
+      day: "正午偏后，光从客厅西窗铺进来。",
+      dusk: "太阳贴着窗沿，影子一直拖到沙发。",
+      night: "天光退了，房间交给灯和屏幕。",
+    };
+    const MODE_NOTE = {
+      home: "暖光亮着，窗帘留出白天。",
+      away: "房间歇下，摄像头还开着。",
+      cinema: "窗帘合拢，屏幕和音箱接手。",
+      sleep: "只留一盏夜灯，空调停在 26°。",
+      custom: "这是你改过的状态，不再套用场景。",
+    };
+    const MODES = {
+      home: {
+        main: { on: true, brightness: 76, cct: 3700 },
+        lamp: { on: true, brightness: 42, cct: 2800 },
+        curtain: { open: 74 },
+        tv: { on: false, brightness: 80 },
+        ac: { on: true, temp: 25 },
+        fan: { speed: 22 },
+        speaker: { volume: 18 },
+        camera: { on: true },
+      },
+      away: {
+        main: { on: false, brightness: 0, cct: 3700 },
+        lamp: { on: false, brightness: 0, cct: 2800 },
+        curtain: { open: 0 },
+        tv: { on: false, brightness: 80 },
+        ac: { on: false, temp: 26 },
+        fan: { speed: 0 },
+        speaker: { volume: 0 },
+        camera: { on: true },
+      },
+      cinema: {
+        main: { on: true, brightness: 5, cct: 2500 },
+        lamp: { on: false, brightness: 0, cct: 2400 },
+        curtain: { open: 0 },
+        tv: { on: true, brightness: 100 },
+        ac: { on: true, temp: 24 },
+        fan: { speed: 0 },
+        speaker: { volume: 70 },
+        camera: { on: false },
+      },
+      sleep: {
+        main: { on: false, brightness: 0, cct: 2300 },
+        lamp: { on: true, brightness: 8, cct: 2300 },
+        curtain: { open: 6 },
+        tv: { on: false, brightness: 40 },
+        ac: { on: true, temp: 26 },
+        fan: { speed: 14 },
+        speaker: { volume: 0 },
+        camera: { on: false },
+      },
+    };
+    const VIEWS = {
+      overview: { p: [2.15, 1.7, 4.55], t: [1.35, 0.95, 1.7] },
+      main: { p: [1.7, 1.5, 2.7], t: [1.55, 2.45, 1.7] },
+      lamp: { p: [1.9, 1.35, 3.7], t: [1.05, 1.05, 3.05] },
+      curtain: { p: [1.7, 1.5, 3.8], t: [0.15, 1.5, 3.8] },
+      tv: { p: [1.7, 1.25, 1.55], t: [3.05, 0.95, 1.55] },
+      ac: { p: [1.45, 1.55, 3.8], t: [0.15, 2.4, 3.8] },
+      fan: { p: [2.5, 1.45, 3.4], t: [1.7, 2.45, 2.5] },
+      speaker: { p: [2.2, 1.15, 1.55], t: [2.95, 0.5, 1.55] },
+      camera: { p: [1.8, 1.65, 1.5], t: [0.4, 2.4, 0.4] },
+      sensor: { p: [1.2, 1.35, 1.15], t: [1.15, 1.4, 0.12] },
+    };
+    const DEVICES = [
+      { id: "main", name: "主灯", zone: "天花", controls: ["power", "brightness", "cct"] },
+      { id: "lamp", name: "落地灯", zone: "沙发右侧", controls: ["power", "brightness", "cct"] },
+      { id: "curtain", name: "窗帘", zone: "客厅西窗", controls: ["open"] },
+      { id: "tv", name: "电视", zone: "客厅东墙", controls: ["power", "brightness"] },
+      { id: "ac", name: "空调", zone: "西窗上方", controls: ["power", "temp"] },
+      { id: "fan", name: "风扇", zone: "客厅天花", controls: ["speed"] },
+      { id: "speaker", name: "音箱", zone: "电视柜", controls: ["volume"] },
+      { id: "camera", name: "摄像头", zone: "客厅西北", controls: ["power"] },
+      { id: "sensor", name: "温湿度传感器", zone: "客厅北墙", controls: ["sensor"] },
+    ];
+
+    const S = {
+      time: "day",
+      mode: "home",
+      selected: null,
+      room: { temp: 28.4, humidity: 57 },
+      main: { on: true, brightness: 76, cct: 3700, last: 76 },
+      lamp: { on: true, brightness: 42, cct: 2800, last: 42 },
+      curtain: { open: 74 },
+      tv: { on: false, brightness: 80, last: 80 },
+      ac: { on: true, temp: 25 },
+      fan: { speed: 22 },
+      speaker: { volume: 18 },
+      camera: { on: true },
+    };
+
+    const materialCache = new Map();
+    const pickRoots = [];
+    const labels = {};
+    const rig = { leaves: [], mainGlows: [], bars: [] };
+    const clock = new THREE.Clock();
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+    const kMain = new THREE.Color();
+    const kLamp = new THREE.Color();
+    let renderer, scene, camera, controls;
+    let sun, hemi, mainSpot, fillA, fillB, lampSpot, lampPoint, tvLight;
+    let tween = null;
+    let camTween = null;
+    let activeInput = null;
+    let uiClock = 0;
+    let sensorKey = "";
+    let tvDark = true;
+    let nav = "orbit";
+    let navBlend = null;
+    const keysDown = new Set();
+    const moveKeys = new Set(["KeyW", "KeyA", "KeyS", "KeyD", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
+    const EYE = 1.62;
+    const BODY_R = 0.28;
+    const walkDir = new THREE.Vector3();
+    const walkRight = new THREE.Vector3();
+    const worldUp = new THREE.Vector3(0, 1, 0);
+    const BLOCKS = [];
+
+    function solid(color, roughness = 0.8, metalness = 0) {
+      const key = color + "|" + roughness + "|" + metalness;
+      let material = materialCache.get(key);
+      if (!material) {
+        material = new THREE.MeshStandardMaterial({ color, roughness, metalness });
+        materialCache.set(key, material);
+      }
+      return material;
+    }
+
+    function box(w, h, d, material, shadow = true) {
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), material);
+      mesh.castShadow = shadow;
+      mesh.receiveShadow = shadow;
+      return mesh;
+    }
+
+    function place(mesh, x, y, z, parent) {
+      mesh.position.set(x, y, z);
+      parent.add(mesh);
+      return mesh;
+    }
+
+    function tag(group, id) {
+      group.userData.device = id;
+      pickRoots.push(group);
+      scene.add(group);
+      return group;
+    }
+
+    function kelvin(value, target) {
+      const temp = THREE.MathUtils.clamp(value, 1000, 40000) / 100;
+      let r;
+      let g;
+      let b;
+      if (temp <= 66) {
+        r = 255;
+        g = 99.4708025861 * Math.log(temp) - 161.1195681661;
+      } else {
+        r = 329.698727446 * Math.pow(temp - 60, -0.1332047592);
+        g = 288.1221695283 * Math.pow(temp - 60, -0.0755148492);
+      }
+      if (temp >= 66) b = 255;
+      else if (temp <= 19) b = 0;
+      else b = 138.5177312231 * Math.log(temp - 10) - 305.0447927307;
+      target.setRGB(
+        THREE.MathUtils.clamp(r, 0, 255) / 255,
+        THREE.MathUtils.clamp(g, 0, 255) / 255,
+        THREE.MathUtils.clamp(b, 0, 255) / 255,
+        THREE.SRGBColorSpace,
+      );
+      return target;
+    }
+
+    function makeCanvas(w, h, draw) {
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      draw(ctx, w, h);
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+      return { canvas, ctx, texture };
+    }
+
+    const surf = {};
+
+    function hash2(ix, iy) {
+      let n = (ix * 374761393 + iy * 668265263) | 0;
+      n = Math.imul(n ^ (n >>> 13), 1274126177);
+      return ((n ^ (n >>> 16)) >>> 0) / 4294967295;
+    }
+
+    function dataTexture(data, width, height, srgb) {
+      const texture = new THREE.DataTexture(data, width, height);
+      texture.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+      texture.wrapS = THREE.RepeatWrapping;
+      texture.wrapT = THREE.RepeatWrapping;
+      texture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+      texture.needsUpdate = true;
+      return texture;
+    }
+
+    function repeatTextures(maps, rx, ry) {
+      const albedo = maps.albedo.clone();
+      const bump = maps.bump.clone();
+      const rough = maps.rough.clone();
+      albedo.repeat.set(rx, ry);
+      bump.repeat.set(rx, ry);
+      rough.repeat.set(rx, ry);
+      albedo.needsUpdate = true;
+      bump.needsUpdate = true;
+      rough.needsUpdate = true;
+      return { albedo, bump, rough };
+    }
+
+    function paintTriplet(size, pixel) {
+      const count = size * size;
+      const albedo = new Uint8ClampedArray(count * 4);
+      const bump = new Uint8ClampedArray(count * 4);
+      const rough = new Uint8ClampedArray(count * 4);
+      for (let y = 0; y < size; y += 1) {
+        for (let x = 0; x < size; x += 1) {
+          const sample = pixel(x, y, size);
+          const o = (y * size + x) * 4;
+          albedo[o] = sample.r;
+          albedo[o + 1] = sample.g;
+          albedo[o + 2] = sample.b;
+          albedo[o + 3] = 255;
+          bump[o] = bump[o + 1] = bump[o + 2] = sample.bump;
+          bump[o + 3] = 255;
+          rough[o] = rough[o + 1] = rough[o + 2] = sample.rough;
+          rough[o + 3] = 255;
+        }
+      }
+      return {
+        albedo: dataTexture(albedo, size, size, true),
+        bump: dataTexture(bump, size, size, false),
+        rough: dataTexture(rough, size, size, false),
+      };
+    }
+
+    function clampByte(value) {
+      return Math.max(0, Math.min(255, value));
+    }
+
+    function woodPixel(x, y, size) {
+      const plank = 28;
+      const px = x % plank;
+      const pi = Math.floor(x / plank);
+      const along = y / size;
+      const grain = Math.sin(along * Math.PI * 2 * 7 + px * 0.18 + pi);
+      const pore = hash2(x, y);
+      const seam = px < 2 || px > plank - 3;
+      const tone = 168 + ((pi * 13) % 5) * 12 + grain * 16 + (pore - 0.5) * 10;
+      const shade = seam ? 0.72 : 1;
+      const r = clampByte(tone * shade);
+      const g = clampByte(tone * 0.7 * shade);
+      const b = clampByte(tone * 0.42 * shade);
+      return {
+        r, g, b,
+        bump: clampByte(seam ? 48 : 132 + grain * 36 + pore * 18),
+        rough: clampByte(seam ? 214 : 78 + (1 - grain) * 28 + pore * 20),
+      };
+    }
+
+    function plasterPixel(x, y, base) {
+      const n = hash2(x, y);
+      const blot = hash2(Math.floor(x / 6), Math.floor(y / 6));
+      const shift = (blot - 0.5) * 18 + (n - 0.5) * 8;
+      return {
+        r: clampByte(base[0] + shift),
+        g: clampByte(base[1] + shift * 0.92),
+        b: clampByte(base[2] + shift * 0.8),
+        bump: clampByte(128 + (n - 0.5) * 28 + (blot - 0.5) * 20),
+        rough: clampByte(base[3] + (n - 0.5) * 16),
+      };
+    }
+
+    function fabricPixel(x, y, base) {
+      const wx = (x & 3) < 2;
+      const wy = (y & 3) < 2;
+      const weave = wx === wy ? 16 : -14;
+      const fiber = (hash2(x, y) - 0.5) * 14;
+      return {
+        r: clampByte(base[0] + weave + fiber),
+        g: clampByte(base[1] + weave * 0.72 + fiber),
+        b: clampByte(base[2] + weave * 0.4 + fiber),
+        bump: clampByte(124 + weave * 1.6 + fiber),
+        rough: clampByte(wx === wy ? 176 : 214),
+      };
+    }
+
+    function clayPixel(x, y) {
+      const pit = hash2(Math.floor(x / 3), Math.floor(y / 3));
+      const spec = hash2(x * 3, y * 5);
+      const dent = pit > 0.86 ? -28 : 0;
+      return {
+        r: clampByte(196 + dent + (spec - 0.5) * 18),
+        g: clampByte(98 + dent * 0.55 + (spec - 0.5) * 10),
+        b: clampByte(58 + dent * 0.35),
+        bump: clampByte(pit > 0.86 ? 70 : 150 + (spec - 0.5) * 24),
+        rough: clampByte(pit > 0.86 ? 230 : 168 + spec * 24),
+      };
+    }
+
+    function brassPixel(x, y, size) {
+      const scratch = Math.abs(Math.sin((x * 0.7 + y * 0.15) + hash2(x, Math.floor(y / 2)) * 2));
+      const streak = scratch > 0.92 ? -36 : 0;
+      const n = (hash2(x, y) - 0.5) * 12;
+      const along = Math.sin((y / size) * Math.PI * 8);
+      return {
+        r: clampByte(198 + streak + n + along * 8),
+        g: clampByte(154 + streak * 0.75 + n * 0.6),
+        b: clampByte(84 + streak * 0.4 + n * 0.3),
+        bump: clampByte(scratch > 0.92 ? 78 : 148 + along * 10),
+        rough: clampByte(scratch > 0.92 ? 150 : 42 + hash2(x, y) * 28),
+      };
+    }
+
+    function standardSurface(maps, repeat, opts) {
+      const set = repeatTextures(maps, repeat[0], repeat[1]);
+      return new THREE.MeshStandardMaterial({
+        color: opts.color || 0xffffff,
+        map: set.albedo,
+        bumpMap: set.bump,
+        roughnessMap: set.rough,
+        bumpScale: opts.bumpScale,
+        roughness: opts.roughness,
+        metalness: opts.metalness,
+        envMapIntensity: opts.env,
+      });
+    }
+
+    function fabricSurface(maps, repeat, tint, sheenColor) {
+      const set = repeatTextures(maps, repeat[0], repeat[1]);
+      return new THREE.MeshPhysicalMaterial({
+        color: tint,
+        map: set.albedo,
+        bumpMap: set.bump,
+        roughnessMap: set.rough,
+        bumpScale: 0.055,
+        roughness: 0.94,
+        metalness: 0,
+        sheen: 1,
+        sheenColor,
+        sheenRoughness: 0.4,
+        envMapIntensity: 0.42,
+      });
+    }
+
+    function createSurfaces() {
+      const size = 168;
+      const wood = paintTriplet(size, woodPixel);
+      const plaster = paintTriplet(size, (x, y) => plasterPixel(x, y, [243, 238, 230, 214]));
+      const teal = paintTriplet(size, (x, y) => plasterPixel(x, y, [26, 74, 70, 168]));
+      const clay = paintTriplet(size, clayPixel);
+      const brass = paintTriplet(size, brassPixel);
+      const clothClay = paintTriplet(size, (x, y) => fabricPixel(x, y, [196, 98, 58]));
+      const clothCream = paintTriplet(size, (x, y) => fabricPixel(x, y, [244, 239, 228]));
+      const paper = paintTriplet(size, paperPixel);
+      surf.floor = standardSurface(wood, [8, 6], { bumpScale: 0.08, roughness: 0.72, metalness: 0.04, env: 0.32 });
+      surf.wood = standardSurface(wood, [2.2, 1.6], { bumpScale: 0.045, roughness: 0.58, metalness: 0.06, env: 0.42 });
+      surf.woodDeep = standardSurface(wood, [2, 1.4], { color: 0xc4956a, bumpScale: 0.04, roughness: 0.5, metalness: 0.08, env: 0.46 });
+      surf.plaster = standardSurface(plaster, [3, 2], { bumpScale: 0.018, roughness: 0.94, metalness: 0, env: 0.14 });
+      surf.teal = standardSurface(teal, [2, 1.6], { bumpScale: 0.022, roughness: 0.7, metalness: 0.02, env: 0.32 });
+      surf.clay = standardSurface(clay, [1.4, 1.4], { bumpScale: 0.06, roughness: 0.86, metalness: 0.02, env: 0.22 });
+      surf.brass = standardSurface(brass, [1.5, 1.5], { bumpScale: 0.02, roughness: 0.32, metalness: 1, env: 1.25 });
+      surf.paper = standardSurface(paper, [2, 2], { bumpScale: 0.012, roughness: 0.9, metalness: 0, env: 0.12 });
+      surf.fabricClay = fabricSurface(clothClay, [3, 3], 0xffffff, 0xf0c2a4);
+      surf.fabricClayDeep = fabricSurface(clothClay, [3, 3], 0xc48a72, 0xe7b296);
+      surf.fabricCream = fabricSurface(clothCream, [3.5, 3.5], 0xffffff, 0xfff8ee);
+      surf.curtain = surf.fabricCream.clone();
+      surf.curtain.side = THREE.DoubleSide;
+      surf.shade = surf.fabricCream.clone();
+      surf.shade.side = THREE.DoubleSide;
+      surf.shade.emissive = new THREE.Color(0xf4efe4);
+      surf.shade.emissiveIntensity = 0.15;
+      surf.rug = makeRugMaterial();
+    }
+
+    function paperPixel(x, y) {
+      const tooth = hash2(Math.floor(x / 2), Math.floor(y / 2));
+      const n = hash2(x, y);
+      return {
+        r: clampByte(244 + (tooth - 0.5) * 10),
+        g: clampByte(239 + (tooth - 0.5) * 8),
+        b: clampByte(230 + (tooth - 0.5) * 6),
+        bump: clampByte(138 + (tooth - 0.5) * 42 + (n - 0.5) * 14),
+        rough: clampByte(188 + (n - 0.5) * 18),
+      };
+    }
+
+    function makeRugMaterial() {
+      const painted = makeCanvas(768, 512, (ctx, w, h) => {
+        ctx.fillStyle = "#f3ecdf";
+        ctx.fillRect(0, 0, w, h);
+        ctx.strokeStyle = "#1a4542";
+        ctx.lineWidth = 36;
+        ctx.strokeRect(18, 18, w - 36, h - 36);
+        ctx.strokeStyle = "#c4623a";
+        ctx.lineWidth = 8;
+        ctx.strokeRect(48, 48, w - 96, h - 96);
+        ctx.strokeStyle = "rgba(176, 141, 87, 0.55)";
+        ctx.lineWidth = 2;
+        for (let y = 88; y < h - 72; y += 52) {
+          for (let x = 98; x < w - 80; x += 52) {
+            ctx.beginPath();
+            ctx.moveTo(x, y - 13);
+            ctx.lineTo(x + 13, y);
+            ctx.lineTo(x, y + 13);
+            ctx.lineTo(x - 13, y);
+            ctx.closePath();
+            ctx.stroke();
+          }
+        }
+        ctx.strokeStyle = "#1a4542";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.ellipse(w / 2, h / 2, 74, 50, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.strokeStyle = "#b08d57";
+        ctx.beginPath();
+        ctx.ellipse(w / 2, h / 2, 40, 26, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      });
+      const img = painted.ctx.getImageData(0, 0, 768, 512);
+      const bump = new Uint8ClampedArray(768 * 512 * 4);
+      const rough = new Uint8ClampedArray(768 * 512 * 4);
+      for (let i = 0; i < 768 * 512; i += 1) {
+        const o = i * 4;
+        const lum = img.data[o] * 0.3 + img.data[o + 1] * 0.59 + img.data[o + 2] * 0.11;
+        const pile = lum > 210 ? 168 : lum < 80 ? 96 : 132;
+        bump[o] = bump[o + 1] = bump[o + 2] = pile;
+        bump[o + 3] = 255;
+        rough[o] = rough[o + 1] = rough[o + 2] = lum > 210 ? 206 : 168;
+        rough[o + 3] = 255;
+      }
+      const bumpMap = dataTexture(bump, 768, 512, false);
+      const roughnessMap = dataTexture(rough, 768, 512, false);
+      bumpMap.wrapS = bumpMap.wrapT = THREE.ClampToEdgeWrapping;
+      roughnessMap.wrapS = roughnessMap.wrapT = THREE.ClampToEdgeWrapping;
+      painted.texture.wrapS = painted.texture.wrapT = THREE.ClampToEdgeWrapping;
+      painted.texture.flipY = false;
+      return new THREE.MeshStandardMaterial({
+        map: painted.texture,
+        bumpMap,
+        roughnessMap,
+        bumpScale: 0.09,
+        roughness: 0.92,
+        metalness: 0,
+        envMapIntensity: 0.18,
+      });
+    }
+
+    function makePaletteEnvironment() {
+      const envScene = new THREE.Scene();
+      const span = 12;
+      function wall(width, height, color, x, y, z, rx, ry) {
+        const mesh = new THREE.Mesh(
+          new THREE.PlaneGeometry(width, height),
+          new THREE.MeshBasicMaterial({ color }),
+        );
+        mesh.position.set(x, y, z);
+        mesh.rotation.set(rx, ry, 0);
+        envScene.add(mesh);
+      }
+      wall(span, span, 0xc4894a, 0, -span / 2, 0, -Math.PI / 2, 0);
+      wall(span, span, 0xf4efe6, 0, span / 2, 0, Math.PI / 2, 0);
+      wall(span, span, 0x1a4542, 0, 0, -span / 2, 0, 0);
+      wall(span, span, 0xf3ecdf, 0, 0, span / 2, 0, Math.PI);
+      wall(span, span, 0xd7b56a, span / 2, 0, 0, 0, -Math.PI / 2);
+      wall(span, span, 0xc4623a, -span / 2, 0, 0, 0, Math.PI / 2);
+      const glow = new THREE.Mesh(
+        new THREE.PlaneGeometry(4.2, 1.1),
+        new THREE.MeshBasicMaterial({ color: 0xfff3d4 }),
+      );
+      glow.position.set(0, span / 2 - 0.08, 0.2);
+      glow.rotation.x = Math.PI / 2;
+      envScene.add(glow);
+      const pmrem = new THREE.PMREMGenerator(renderer);
+      const target = pmrem.fromScene(envScene, 0.1);
+      pmrem.dispose();
+      return target.texture;
+    }
+
+    function makeArt(w, h, draw) {
+      return makeCanvas(w, h, draw).texture;
+    }
+
+    function buildArt(width, height, texture) {
+      const group = new THREE.Group();
+      const frame = box(width + 0.07, height + 0.07, 0.03, surf.brass);
+      const face = new THREE.Mesh(
+        new THREE.PlaneGeometry(width, height),
+        new THREE.MeshStandardMaterial({
+          map: texture,
+          bumpMap: surf.paper.bumpMap,
+          roughnessMap: surf.paper.roughnessMap,
+          bumpScale: 0.012,
+          roughness: 0.9,
+          metalness: 0,
+        }),
+      );
+      face.position.z = 0.02;
+      face.castShadow = false;
+      face.receiveShadow = true;
+      group.add(frame, face);
+      return group;
+    }
+
+    function addLabel(id, x, y, z) {
+      const name = DEVICES.find((item) => item.id === id).name;
+      const canvas = document.createElement("canvas");
+      canvas.width = 256;
+      canvas.height = 80;
+      const ctx = canvas.getContext("2d");
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true }));
+      sprite.position.set(x, y, z);
+      sprite.scale.set(0.68, 0.21, 1);
+      sprite.visible = false;
+      sprite.raycast = () => {};
+      sprite.userData.canvas = canvas;
+      sprite.userData.ctx = ctx;
+      sprite.userData.texture = texture;
+      sprite.userData.title = name;
+      scene.add(sprite);
+      labels[id] = sprite;
+      redrawLabel(sprite);
+    }
+
+    function roundRect(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    }
+
+    function redrawLabel(sprite) {
+      const ctx = sprite.userData.ctx;
+      const canvas = sprite.userData.canvas;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "rgba(243, 238, 230, 0.95)";
+      roundRect(ctx, 6, 16, 244, 48, 6);
+      ctx.fill();
+      ctx.fillStyle = "#b85c38";
+      ctx.beginPath();
+      ctx.arc(32, 40, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#1c1915";
+      ctx.font = '500 28px "Noto Sans SC", sans-serif';
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillText(sprite.userData.title, 48, 41);
+      sprite.userData.texture.needsUpdate = true;
+    }
+
+    function addLeaf(parent, x, y, z, sx, sy, sz, rotY, color) {
+      const mesh = new THREE.Mesh(new THREE.SphereGeometry(1, 10, 8), solid(color, 0.72, 0));
+      mesh.scale.set(sx, sy, sz);
+      mesh.position.set(x, y, z);
+      mesh.rotation.y = rotY;
+      mesh.castShadow = true;
+      parent.add(mesh);
+      rig.leaves.push({ mesh, base: 0, phase: Math.random() * Math.PI * 2 });
+    }
+
+    function buildPlant(kind) {
+      const floor = kind === "floor";
+      const group = new THREE.Group();
+      const potR = floor ? 0.18 : 0.055;
+      const potH = floor ? 0.22 : 0.07;
+      const pot = new THREE.Mesh(new THREE.CylinderGeometry(potR, potR * 0.78, potH, 18), surf.clay);
+      pot.position.y = potH / 2;
+      pot.castShadow = true;
+      pot.receiveShadow = true;
+      group.add(pot);
+      const soil = new THREE.Mesh(new THREE.CylinderGeometry(potR * 0.82, potR * 0.82, 0.02, 14), solid(0x3a2a22, 1, 0));
+      soil.position.y = potH - 0.01;
+      group.add(soil);
+      if (floor) {
+        const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.038, 0.42, 8), surf.wood);
+        trunk.position.y = potH + 0.18;
+        trunk.castShadow = true;
+        group.add(trunk);
+      }
+      const specs = floor
+        ? [[0.22, 0.78, 0.05, 0.26, 0.05, 0.12, 0.4, 0x2c6844], [-0.18, 0.7, 0.08, 0.22, 0.045, 0.1, 1.2, 0x3e7c52], [0.05, 0.92, -0.16, 0.2, 0.04, 0.14, 2.1, 0x24563a], [-0.08, 0.84, 0.18, 0.18, 0.04, 0.11, 0.8, 0x2c6844], [0.16, 0.62, -0.12, 0.16, 0.035, 0.1, 2.6, 0x3e7c52], [-0.22, 0.58, -0.05, 0.15, 0.03, 0.09, 1.7, 0x24563a], [0.02, 1.02, 0.02, 0.14, 0.03, 0.1, 0.2, 0x3e7c52]]
+        : [[0.05, 0.16, 0.02, 0.07, 0.02, 0.045, 0.5, 0x2c6844], [-0.04, 0.15, 0.03, 0.06, 0.018, 0.04, 1.4, 0x3e7c52], [0.01, 0.2, -0.03, 0.055, 0.016, 0.04, 2.2, 0x24563a], [-0.02, 0.18, 0.04, 0.05, 0.015, 0.035, 0.7, 0x3e7c52]];
+      specs.forEach(([x, y, z, sx, sy, sz, rot, color]) => addLeaf(group, x, y, z, sx, sy, sz, rot, color));
+      return group;
+    }
+
+    function curtainPanel() {
+      const group = new THREE.Group();
+      const cloth = surf.curtain;
+      const count = 8;
+      const width = 1.7;
+      for (let i = 0; i < count; i += 1) {
+        const z = -width / 2 + (i + 0.5) * (width / count);
+        const fold = box(0.028, 1.62, width / count + 0.012, cloth);
+        fold.position.set(i % 2 === 0 ? 0.03 : -0.012, 0, z);
+        group.add(fold);
+      }
+      return group;
+    }
+
+    function addShell() {
+      const shell = new THREE.Group();
+      const glassMat = new THREE.MeshStandardMaterial({
+        color: 0xd7e7f2,
+        transparent: true,
+        opacity: 0.16,
+        roughness: 0.05,
+        metalness: 0.04,
+        envMapIntensity: 0.85,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      });
+
+      function deck(x0, z0, x1, z1, tile) {
+        const w = x1 - x0;
+        const d = z1 - z0;
+        const src = tile ? surf.plaster : surf.floor;
+        const mat = src.clone();
+        mat.map = src.map.clone();
+        mat.bumpMap = src.bumpMap.clone();
+        mat.roughnessMap = src.roughnessMap.clone();
+        const unit = tile ? 0.45 : 1.15;
+        mat.map.repeat.set(w / unit, d / unit);
+        mat.bumpMap.repeat.copy(mat.map.repeat);
+        mat.roughnessMap.repeat.copy(mat.map.repeat);
+        mat.map.needsUpdate = true;
+        mat.bumpMap.needsUpdate = true;
+        mat.roughnessMap.needsUpdate = true;
+        if (tile) mat.color.set(0xe4ddd2);
+        const floor = new THREE.Mesh(new THREE.PlaneGeometry(w, d), mat);
+        floor.rotation.x = -Math.PI / 2;
+        floor.position.set((x0 + x1) / 2, tile ? 0.005 : 0, (z0 + z1) / 2);
+        floor.receiveShadow = true;
+        const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(w, d), surf.plaster);
+        ceiling.rotation.x = Math.PI / 2;
+        ceiling.position.set((x0 + x1) / 2, RH, (z0 + z1) / 2);
+        ceiling.receiveShadow = true;
+        shell.add(floor, ceiling);
+      }
+
+      deck(0.07, 0.07, 3.33, 5.1, false);
+      deck(2.36, 5.1, 3.33, 7.39, false);
+      deck(3.47, 3.56, 5.05, 4.48, false);
+      deck(3.47, 6.48, 5.05, 7.39, false);
+      deck(2.23, -2.19, 4.59, 0.58, false);
+      deck(3.47, 0.72, 4.59, 3.43, false);
+      deck(4.73, 0.07, 6.78, 3.43, false);
+      deck(5.19, 3.57, 7.71, 6.35, false);
+      deck(0.07, 5.25, 2.23, 7.39, true);
+      deck(3.47, 4.62, 5.05, 6.35, true);
+
+      function addWall(x0, z0, x1, z1, holes) {
+        const dx = x1 - x0;
+        const dz = z1 - z0;
+        const len = Math.hypot(dx, dz);
+        const ux = dx / len;
+        const uz = dz / len;
+        const rot = -Math.atan2(dz, dx);
+        const cuts = [0, len];
+        holes.forEach((hole) => cuts.push(hole.t0, hole.t1));
+        cuts.sort((a, b) => a - b);
+        for (let i = 0; i < cuts.length - 1; i += 1) {
+          const a = cuts[i];
+          const b = cuts[i + 1];
+          if (b - a < 0.03) continue;
+          const mid = (a + b) / 2;
+          const hole = holes.find((item) => mid >= item.t0 && mid <= item.t1);
+          const cx = x0 + ux * mid;
+          const cz = z0 + uz * mid;
+          const span = b - a;
+          function seg(y0, y1) {
+            if (y1 - y0 < 0.02) return;
+            const mesh = box(span, y1 - y0, WT, surf.plaster);
+            mesh.position.set(cx, (y0 + y1) / 2, cz);
+            mesh.rotation.y = rot;
+            shell.add(mesh);
+          }
+          if (!hole) seg(0, RH);
+          else {
+            seg(0, hole.y0);
+            seg(hole.y1, RH);
+            if (hole.y0 > 0.2) {
+              const glass = new THREE.Mesh(new THREE.PlaneGeometry(Math.max(0.2, span - 0.08), hole.y1 - hole.y0 - 0.08), glassMat);
+              glass.position.set(cx, (hole.y0 + hole.y1) / 2, cz);
+              glass.rotation.y = rot;
+              shell.add(glass);
+              const sill = box(span + 0.04, 0.045, 0.1, surf.wood);
+              sill.position.set(cx, hole.y0, cz);
+              sill.rotation.y = rot;
+              shell.add(sill);
+            }
+          }
+          if (!hole || !hole.pass) {
+            const xA = x0 + ux * a;
+            const zA = z0 + uz * a;
+            const xB = x0 + ux * b;
+            const zB = z0 + uz * b;
+            const padX = Math.abs(uz) * WT / 2 + 0.01;
+            const padZ = Math.abs(ux) * WT / 2 + 0.01;
+            BLOCKS.push({
+              minX: Math.min(xA, xB) - padX,
+              maxX: Math.max(xA, xB) + padX,
+              minZ: Math.min(zA, zB) - padZ,
+              maxZ: Math.max(zA, zB) + padZ,
+            });
+          }
+        }
+        holes.forEach((hole) => {
+          if (!hole.pass) return;
+          [hole.t0, hole.t1].forEach((t) => {
+            const jamb = box(0.07, hole.y1, WT + 0.03, surf.wood);
+            jamb.position.set(x0 + ux * t, hole.y1 / 2, z0 + uz * t);
+            jamb.rotation.y = rot;
+            shell.add(jamb);
+          });
+          const head = box(hole.t1 - hole.t0, 0.08, WT + 0.02, surf.wood);
+          const t = (hole.t0 + hole.t1) / 2;
+          head.position.set(x0 + ux * t, hole.y1, z0 + uz * t);
+          head.rotation.y = rot;
+          shell.add(head);
+        });
+      }
+
+      const win = (t0, t1) => ({ t0, t1, y0: SILL, y1: WIN_H, pass: false });
+      const door = (t0, t1) => ({ t0, t1, y0: 0, y1: DOOR_H, pass: true });
+      addWall(XW, ZN, XW, ZS, [win(2.9, 4.7), win(5.7, 6.8)]);
+      addWall(XW, ZS, XAw, ZS, [door(3.55, 4.4)]);
+      addWall(XW, ZN, XCw, ZN, []);
+      addWall(XCw, ZCn, XCw, ZCs, []);
+      addWall(XCe, ZCn, XCe, ZCs, []);
+      addWall(XCw, ZCn, XCe, ZCn, [win(0.35, 2.15)]);
+      addWall(XCw, ZCs, XCe, ZCs, [door(0.24, 1.08)]);
+      addWall(XCe, ZN, XBe, ZN, []);
+      addWall(XBe, ZN, XBe, ZBs, [win(0.85, 2.35)]);
+      addWall(XI, ZBs, XBe, ZBs, [door(0.18, 1.04)]);
+      addWall(XI, ZCs, XI, ZBs, []);
+      addWall(XI, ZbathN, XI, ZAs, []);
+      addWall(XI, ZbathN, XAw, ZbathN, [door(0.2, 1.04)]);
+      addWall(XI, ZAs, XAw, ZAs, []);
+      addWall(XBe, ZBs, XAe, ZBs, []);
+      addWall(XAe, ZBs, XAe, ZAs, [win(0.75, 2.2)]);
+      addWall(XAw, ZAs, XAe, ZAs, []);
+      addWall(XAw, ZBs, XAw, ZAs, [door(0.22, 1.06)]);
+      addWall(XW, ZKn, XK, ZKn, []);
+      addWall(XK, ZKn, XK, ZS, [door(0.28, 1.35)]);
+      addWall(XAw, ZAs, XAw, ZS, []);
+
+      const entry = box(0.82, 2.04, 0.05, surf.wood);
+      entry.position.set(3.98, 1.02, ZS);
+      const entryHandle = new THREE.Mesh(new THREE.SphereGeometry(0.02, 10, 8), surf.brass);
+      entryHandle.position.set(4.28, 1.02, ZS - 0.04);
+      shell.add(entry, entryHandle);
+      BLOCKS.push({ minX: 3.52, maxX: 4.44, minZ: ZS - 0.08, maxZ: ZS + 0.1 });
+
+      const accent = box(0.025, 2.15, 1.85, surf.teal);
+      accent.position.set(XI - 0.075, 1.25, TVP.z);
+      shell.add(accent);
+      scene.add(shell);
+    }
+
+    function addFurniture(arts) {
+      const rug = new THREE.Mesh(new THREE.PlaneGeometry(2.15, 1.7), surf.rug);
+      rug.rotation.x = -Math.PI / 2;
+      rug.position.set(1.2, 0.012, 1.55);
+      rug.receiveShadow = true;
+      scene.add(rug);
+
+      const sofa = new THREE.Group();
+      const fab = surf.fabricClay;
+      const fabDeep = surf.fabricClayDeep;
+      const legMat = surf.wood;
+      [[-1.15, -0.36], [1.15, -0.36], [-1.15, 0.36], [1.15, 0.36]].forEach(([x, z]) => {
+        place(box(0.06, 0.08, 0.06, legMat), x, 0.04, z, sofa);
+      });
+      place(box(2.36, 0.14, 0.86, fabDeep), 0, 0.17, 0.02, sofa);
+      for (let i = 0; i < 3; i += 1) {
+        const x = -0.74 + i * 0.74;
+        place(box(0.7, 0.16, 0.76, fab), x, 0.32, -0.02, sofa);
+        place(box(0.7, 0.42, 0.12, fab), x, 0.62, 0.34, sofa);
+      }
+      place(box(0.14, 0.38, 0.86, fabDeep), -1.18, 0.4, 0.02, sofa);
+      place(box(0.14, 0.38, 0.86, fabDeep), 1.18, 0.4, 0.02, sofa);
+      const pillowA = box(0.32, 0.26, 0.08, surf.fabricClay);
+      pillowA.position.set(-0.62, 0.5, 0.22);
+      pillowA.rotation.z = 0.12;
+      sofa.add(pillowA);
+      const pillowB = box(0.3, 0.24, 0.08, surf.fabricCream);
+      pillowB.position.set(0.48, 0.48, 0.2);
+      pillowB.rotation.z = -0.1;
+      sofa.add(pillowB);
+      const throwFold = box(0.42, 0.035, 0.62, surf.fabricClayDeep);
+      throwFold.position.set(0.78, 0.42, -0.02);
+      throwFold.rotation.y = 0.35;
+      sofa.add(throwFold);
+      sofa.position.set(SOFA.x, 0, SOFA.z);
+      sofa.rotation.y = -Math.PI / 2;
+      scene.add(sofa);
+
+      const table = new THREE.Group();
+      const topWood = surf.wood;
+      const shelfWood = surf.woodDeep;
+      place(box(1.16, 0.045, 0.64, topWood), 0, 0.36, 0, table);
+      place(box(1.02, 0.018, 0.52, shelfWood), 0, 0.15, 0, table);
+      [[-0.5, -0.24], [0.5, -0.24], [-0.5, 0.24], [0.5, 0.24]].forEach(([x, z]) => {
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.36, 10), shelfWood);
+        leg.position.set(x, 0.18, z);
+        leg.castShadow = true;
+        leg.receiveShadow = true;
+        table.add(leg);
+      });
+      const bookA = box(0.28, 0.018, 0.2, surf.paper);
+      bookA.position.set(-0.22, 0.392, 0.04);
+      bookA.rotation.y = 0.22;
+      table.add(bookA);
+      const bookB = box(0.24, 0.016, 0.18, surf.teal);
+      bookB.position.set(-0.2, 0.409, 0.03);
+      bookB.rotation.y = 0.3;
+      table.add(bookB);
+      const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.034, 0.07, 16), solid(0xf7f4ee, 0.32, 0.08));
+      cup.position.set(0.28, 0.42, -0.08);
+      cup.castShadow = true;
+      table.add(cup);
+      const tablePlant = buildPlant("table");
+      tablePlant.position.set(0.16, 0.385, 0.12);
+      table.add(tablePlant);
+      table.position.set(TABLE.x, 0, TABLE.z);
+      scene.add(table);
+
+      const cabinet = new THREE.Group();
+      const cabMat = surf.wood;
+      const metal = surf.brass;
+      [[-0.95, -0.16], [0.95, -0.16], [-0.95, 0.16], [0.95, 0.16]].forEach(([x, z]) => {
+        place(box(0.04, 0.1, 0.04, metal), x, 0.05, z, cabinet);
+      });
+      place(box(2.2, 0.38, 0.42, cabMat), 0, 0.29, 0, cabinet);
+      place(box(0.008, 0.22, 0.01, surf.brass), -0.55, 0.28, 0.211, cabinet);
+      place(box(0.008, 0.22, 0.01, surf.brass), 0.55, 0.28, 0.211, cabinet);
+      cabinet.rotation.y = Math.PI / 2;
+      cabinet.position.set(3.02, 0, TVP.z);
+      scene.add(cabinet);
+
+      const shelf = new THREE.Group();
+      const shelfMat = surf.wood;
+      const sW = 1.22;
+      const sD = 0.34;
+      const sH = 2.05;
+      place(box(0.016, sH, sW, surf.woodDeep), -sD / 2, sH / 2, 0, shelf);
+      place(box(sD, sH, 0.02, shelfMat), 0, sH / 2, -sW / 2, shelf);
+      place(box(sD, sH, 0.02, shelfMat), 0, sH / 2, sW / 2, shelf);
+      [0.04, 0.48, 0.92, 1.36, 1.8, 2.02].forEach((y) => {
+        place(box(sD - 0.02, 0.018, sW - 0.04, shelfMat), 0.01, y, 0, shelf);
+      });
+      const bookColors = [0xc4623a, 0x1a4542, 0xf3ecdf, 0xa56b3c, 0xb08d57, 0x6b4630, 0xe7d3b4, 0x8c3a2f];
+      function fillBooks(y, z0, z1) {
+        let z = z0;
+        let i = 0;
+        while (z < z1 - 0.03) {
+          const thickness = 0.026 + ((i * 17) % 5) * 0.008;
+          const height = 0.22 + ((i * 13) % 4) * 0.02;
+          const book = box(0.2, height, thickness, solid(bookColors[i % bookColors.length], 0.76, 0));
+          book.position.set(0.03, y + 0.018 + height / 2, z + thickness / 2);
+          shelf.add(book);
+          z += thickness + 0.004;
+          i += 1;
+        }
+      }
+      fillBooks(0.04, -0.52, 0.52);
+      fillBooks(0.48, -0.52, 0.18);
+      fillBooks(0.92, -0.52, 0.52);
+      fillBooks(1.36, -0.2, 0.52);
+      const bowl = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.05, 0.045, 14), surf.clay);
+      bowl.position.set(0.04, 0.48 + 0.04, 0.32);
+      bowl.castShadow = true;
+      shelf.add(bowl);
+      const shelfPlant = buildPlant("table");
+      shelfPlant.position.set(0.02, 1.378, -0.28);
+      shelf.add(shelfPlant);
+      shelf.position.set(3.72, 0, 2.35);
+      scene.add(shelf);
+
+      const plantA = buildPlant("floor");
+      plantA.position.set(0.42, 0, 4.35);
+      scene.add(plantA);
+      const plantB = buildPlant("floor");
+      plantB.position.set(4.15, 0, -1.35);
+      scene.add(plantB);
+
+      const artTv = buildArt(1.2, 0.72, arts.tv);
+      artTv.position.set(1.15, 1.65, 0.1);
+      scene.add(artTv);
+      const artWest = buildArt(0.62, 0.86, arts.west);
+      artWest.position.set(5.7, 1.6, 0.12);
+      scene.add(artWest);
+      const artEast = buildArt(0.56, 0.74, arts.east);
+      artEast.rotation.y = -Math.PI / 2;
+      artEast.position.set(7.66, 1.55, 5.05);
+      scene.add(artEast);
+      BLOCKS.push(
+        { minX: 0.28, maxX: 1.2, minZ: 0.32, maxZ: 2.78 },
+        { minX: 1.12, maxX: 2.32, minZ: 1.18, maxZ: 1.92 },
+        { minX: 2.78, maxX: 3.26, minZ: 0.42, maxZ: 2.68 },
+        { minX: 3.5, maxX: 3.95, minZ: 1.7, maxZ: 3.02 },
+      );
+    }
+
+    function addRooms() {
+      function bed(x, z, rot, wide) {
+        const group = new THREE.Group();
+        const w = wide ? 1.8 : 1.5;
+        const d = 2;
+        place(box(w, 0.22, d, surf.fabricCream), 0, 0.34, 0, group);
+        place(box(w + 0.06, 0.16, d + 0.06, surf.wood), 0, 0.14, 0, group);
+        place(box(w, 0.62, 0.08, surf.woodDeep), 0, 0.58, d / 2, group);
+        [[-0.28, surf.fabricClay], [0.26, surf.fabricCream]].forEach(([px, mat]) => {
+          const pillow = box(wide ? 0.46 : 0.38, 0.1, 0.28, mat);
+          pillow.position.set(px, 0.5, d / 2 - 0.32);
+          group.add(pillow);
+        });
+        group.rotation.y = rot;
+        group.position.set(x, 0, z);
+        scene.add(group);
+      }
+      function stand(x, z) {
+        const mesh = box(0.38, 0.42, 0.34, surf.wood);
+        mesh.position.set(x, 0.21, z);
+        scene.add(mesh);
+      }
+      bed(3.4, -1.05, Math.PI, false);
+      stand(2.48, -1.75);
+      stand(4.28, -1.75);
+      bed(5.55, 1.15, Math.PI, true);
+      stand(4.45, 0.4);
+      stand(6.6, 0.4);
+      bed(6.7, 4.65, Math.PI, true);
+      stand(7.45, 3.9);
+
+      const wardC = box(0.52, 1.9, 1.0, surf.woodDeep);
+      wardC.position.set(2.5, 0.95, -0.35);
+      const wardB = box(1.1, 1.9, 0.48, surf.woodDeep);
+      wardB.position.set(6.45, 0.95, 3.05);
+      const wardA = box(1.15, 1.9, 0.46, surf.wood);
+      wardA.position.set(6.4, 0.95, 6.05);
+      scene.add(wardC, wardB, wardA);
+
+      const baseW = box(0.58, 0.86, 1.7, surf.wood);
+      baseW.position.set(0.4, 0.43, 6.35);
+      const topW = box(0.62, 0.04, 1.76, surf.woodDeep);
+      topW.position.set(0.4, 0.88, 6.35);
+      const baseS = box(1.35, 0.86, 0.55, surf.wood);
+      baseS.position.set(1.1, 0.43, 7.05);
+      const topS = box(1.4, 0.04, 0.6, surf.woodDeep);
+      topS.position.set(1.1, 0.88, 7.05);
+      const fridge = box(0.62, 1.7, 0.62, solid(0xf3ecdf, 0.4, 0.12));
+      fridge.position.set(1.82, 0.85, 5.58);
+      const stove = box(0.52, 0.03, 0.42, solid(0x2a2926, 0.35, 0.55));
+      stove.position.set(1.15, 0.91, 7.02);
+      const sink = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.13, 0.06, 16), surf.brass);
+      sink.position.set(0.42, 0.92, 6.05);
+      const upper = box(0.3, 0.5, 1.4, surf.wood);
+      upper.position.set(0.24, 1.82, 6.4);
+      scene.add(baseW, topW, baseS, topS, fridge, stove, sink, upper);
+
+      const vanity = box(1.0, 0.78, 0.42, surf.wood);
+      vanity.position.set(4.2, 0.39, 6.05);
+      const basin = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.12, 0.07, 16), solid(0xf7f4ee, 0.25, 0.04));
+      basin.position.set(4.2, 0.82, 6.0);
+      const toilet = box(0.38, 0.4, 0.52, solid(0xf7f4ee, 0.32, 0.04));
+      toilet.position.set(4.72, 0.28, 4.95);
+      const tray = box(0.6, 0.03, 0.7, surf.clay);
+      tray.position.set(3.82, 0.02, 5.05);
+      const screen = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.68, 1.65),
+        new THREE.MeshStandardMaterial({
+          color: 0xd7e7f2,
+          transparent: true,
+          opacity: 0.2,
+          roughness: 0.05,
+          metalness: 0.02,
+          depthWrite: false,
+          side: THREE.DoubleSide,
+        }),
+      );
+      screen.position.set(4.1, 0.9, 5.05);
+      screen.rotation.y = Math.PI / 2;
+      scene.add(vanity, basin, toilet, tray, screen);
+
+      BLOCKS.push(
+        { minX: 2.6, maxX: 4.2, minZ: -2.05, maxZ: -0.05 },
+        { minX: 4.6, maxX: 6.5, minZ: 0.15, maxZ: 2.15 },
+        { minX: 5.75, maxX: 7.65, minZ: 3.65, maxZ: 5.65 },
+        { minX: 2.22, maxX: 2.78, minZ: -0.9, maxZ: 0.2 },
+        { minX: 5.85, maxX: 7.05, minZ: 2.78, maxZ: 3.32 },
+        { minX: 5.8, maxX: 7.0, minZ: 5.8, maxZ: 6.3 },
+        { minX: 0.1, maxX: 0.72, minZ: 5.45, maxZ: 7.25 },
+        { minX: 0.4, maxX: 1.8, minZ: 6.75, maxZ: 7.35 },
+        { minX: 1.48, maxX: 2.16, minZ: 5.24, maxZ: 5.92 },
+        { minX: 3.65, maxX: 4.75, minZ: 5.8, maxZ: 6.3 },
+        { minX: 4.5, maxX: 4.95, minZ: 4.66, maxZ: 5.24 },
+      );
+    }
+
+    function addDevices(tvScreen, sensorScreen) {
+      const main = new THREE.Group();
+      const housing = box(1.55, 0.035, 0.26, solid(0x2a2826, 0.45, 0.45), false);
+      housing.position.set(1.6, 2.68, 1.7);
+      main.add(housing);
+      const panelMat = new THREE.MeshStandardMaterial({ color: 0x22211f, emissive: 0x000000, roughness: 0.45 });
+      const panel = box(1.4, 0.012, 0.14, panelMat, false);
+      panel.position.set(1.6, 2.655, 1.7);
+      main.add(panel);
+      rig.mainGlows.push(panelMat);
+      [[0.9, 3.9], [2.35, 4.7]].forEach(([x, z]) => {
+        const ring = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.02, 20), surf.brass);
+        ring.position.set(x, 2.72, z);
+        ring.castShadow = false;
+        const coreMat = new THREE.MeshStandardMaterial({ color: 0x22211f, emissive: 0x000000, roughness: 0.4 });
+        const core = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.012, 16), coreMat);
+        core.position.set(x, 2.7, z);
+        main.add(ring, core);
+        rig.mainGlows.push(coreMat);
+      });
+      tag(main, "main");
+      addLabel("main", 1.6, 2.4, 1.7);
+
+      const lamp = new THREE.Group();
+      const steel = surf.brass;
+      const darkMetal = surf.brass;
+      for (let i = 0; i < 3; i += 1) {
+        const pivot = new THREE.Group();
+        pivot.rotation.y = (i * Math.PI * 2) / 3;
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 1.12, 8), steel);
+        leg.position.set(0.18, 0.5, 0);
+        leg.rotation.z = 0.28;
+        leg.castShadow = true;
+        pivot.add(leg);
+        lamp.add(pivot);
+      }
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.02, 1.12, 10), darkMetal);
+      pole.position.y = 0.82;
+      pole.castShadow = true;
+      lamp.add(pole);
+      rig.shadeMat = surf.shade;
+      const shade = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.26, 0.28, 24, 1, true), rig.shadeMat);
+      shade.position.y = 1.48;
+      shade.castShadow = true;
+      lamp.add(shade);
+      const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.02, 20), surf.brass);
+      cap.position.y = 1.62;
+      lamp.add(cap);
+      rig.bulbMat = new THREE.MeshStandardMaterial({ color: 0xfff1d6, emissive: 0xfff1d6, emissiveIntensity: 0.4 });
+      const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.045, 16, 12), rig.bulbMat);
+      bulb.position.y = 1.42;
+      lamp.add(bulb);
+      lamp.position.set(LAMP.x, 0, LAMP.z);
+      tag(lamp, "lamp");
+      addLabel("lamp", LAMP.x, 1.92, LAMP.z);
+
+      const curtains = new THREE.Group();
+      curtains.position.set(0.18, 1.38, 3.8);
+      rig.curtainL = curtainPanel();
+      rig.curtainR = curtainPanel();
+      curtains.add(rig.curtainL, rig.curtainR);
+      const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 3.5, 12), surf.brass);
+      rod.rotation.x = Math.PI / 2;
+      rod.position.y = 0.9;
+      rod.castShadow = true;
+      curtains.add(rod);
+      tag(curtains, "curtain");
+      addLabel("curtain", 0.55, 2.25, 3.8);
+
+      const tv = new THREE.Group();
+      const bezel = box(1.56, 0.9, 0.045, solid(0x121212, 0.4, 0.35));
+      tv.add(bezel);
+      rig.tvMat = new THREE.MeshStandardMaterial({
+        color: 0x050505,
+        map: tvScreen.texture,
+        emissive: 0xffffff,
+        emissiveMap: tvScreen.texture,
+        emissiveIntensity: 0,
+        roughness: 0.22,
+        metalness: 0.62,
+      });
+      const screen = new THREE.Mesh(new THREE.PlaneGeometry(1.46, 0.8), rig.tvMat);
+      screen.position.z = 0.024;
+      tv.add(screen);
+      rig.tvLed = new THREE.Mesh(new THREE.SphereGeometry(0.012, 10, 8), new THREE.MeshStandardMaterial({ color: 0x2a1515, emissive: 0x5a1a1a, emissiveIntensity: 0.5 }));
+      rig.tvLed.position.set(0.7, -0.4, 0.03);
+      tv.add(rig.tvLed);
+      tv.rotation.y = -Math.PI / 2;
+      tv.position.set(3.22, 0.9, TVP.z);
+      tag(tv, "tv");
+      addLabel("tv", 2.7, 1.5, TVP.z);
+      rig.tvScreen = tvScreen;
+
+      const speaker = new THREE.Group();
+      place(box(0.86, 0.1, 0.1, solid(0x1a1a1a, 0.45, 0.25)), 0, 0, 0, speaker);
+      const barMat = new THREE.MeshStandardMaterial({ color: 0xc8c2b8, emissive: 0x8a8176, emissiveIntensity: 0.15, roughness: 0.4 });
+      for (let i = 0; i < 11; i += 1) {
+        const bar = box(0.028, 0.06, 0.02, barMat, false);
+        bar.geometry.translate(0, 0.03, 0);
+        bar.position.set(-0.3 + i * 0.06, -0.02, 0.045);
+        speaker.add(bar);
+        rig.bars.push(bar);
+      }
+      speaker.rotation.y = -Math.PI / 2;
+      speaker.position.set(2.98, 0.53, TVP.z);
+      tag(speaker, "speaker");
+      addLabel("speaker", 2.55, 0.85, TVP.z);
+
+      const ac = new THREE.Group();
+      const body = box(0.86, 0.28, 0.2, solid(0xe7e1d6, 0.42, 0.08));
+      ac.add(body);
+      place(box(0.7, 0.012, 0.012, solid(0x2c2c2c, 0.5, 0.2), false), 0, 0.04, 0.1, ac);
+      place(box(0.7, 0.012, 0.012, solid(0x2c2c2c, 0.5, 0.2), false), 0, 0.07, 0.1, ac);
+      rig.acHinge = new THREE.Group();
+      rig.acHinge.position.set(0, -0.12, 0.06);
+      const flap = box(0.74, 0.015, 0.12, solid(0xded6c8, 0.5, 0.05));
+      flap.position.set(0, 0, 0.05);
+      rig.acHinge.add(flap);
+      ac.add(rig.acHinge);
+      rig.acLed = new THREE.Mesh(new THREE.SphereGeometry(0.012, 10, 8), new THREE.MeshStandardMaterial({ color: 0x333, emissive: 0x333, emissiveIntensity: 0.2 }));
+      rig.acLed.position.set(0.34, 0.08, 0.1);
+      ac.add(rig.acLed);
+      ac.position.set(0.2, 2.42, 3.8);
+      ac.rotation.y = Math.PI / 2;
+      tag(ac, "ac");
+      addLabel("ac", 0.7, 2.42, 3.8);
+
+      const fan = new THREE.Group();
+      const canopy = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.03, 16), surf.brass);
+      canopy.position.y = 3.16;
+      const rodFan = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.16, 8), surf.brass);
+      rodFan.position.y = 3.06;
+      const motor = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, 0.1, 20), solid(0x2a2926, 0.4, 0.7));
+      motor.position.y = 2.96;
+      motor.castShadow = true;
+      fan.add(canopy, rodFan, motor);
+      rig.fanSpin = new THREE.Group();
+      rig.fanSpin.position.y = 2.9;
+      const bladeMat = solid(0xefe8dc, 0.48, 0.08);
+      for (let i = 0; i < 3; i += 1) {
+        const pivot = new THREE.Group();
+        pivot.rotation.y = (i * Math.PI * 2) / 3;
+        const blade = box(0.9, 0.012, 0.15, bladeMat);
+        blade.position.set(0.5, 0, 0);
+        blade.rotation.z = -0.16;
+        pivot.add(blade);
+        rig.fanSpin.add(pivot);
+      }
+      fan.add(rig.fanSpin);
+      fan.position.set(1.75, -0.46, 2.55);
+      tag(fan, "fan");
+      addLabel("fan", 1.75, 2.32, 2.55);
+
+      const cam = new THREE.Group();
+      const mount = box(0.08, 0.05, 0.08, solid(0x222624, 0.45, 0.4), false);
+      mount.position.y = 0.08;
+      cam.add(mount);
+      rig.camHead = new THREE.Group();
+      const bodyCam = box(0.16, 0.08, 0.1, solid(0x2a2e2c, 0.4, 0.35));
+      rig.camHead.add(bodyCam);
+      const lens = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.034, 0.06, 16), solid(0x111315, 0.25, 0.6));
+      lens.rotation.x = Math.PI / 2;
+      lens.position.z = 0.07;
+      rig.camHead.add(lens);
+      rig.camLed = new THREE.Mesh(new THREE.SphereGeometry(0.012, 10, 8), new THREE.MeshStandardMaterial({ color: 0x222, emissive: 0xff3b30, emissiveIntensity: 1 }));
+      rig.camLed.position.set(0.06, 0.03, 0.05);
+      rig.camHead.add(rig.camLed);
+      cam.add(rig.camHead);
+      const hit = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.28, 0.34), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
+      cam.add(hit);
+      cam.rotation.y = Math.PI / 4;
+      cam.position.set(0.35, 2.48, 0.4);
+      tag(cam, "camera");
+      addLabel("camera", 0.7, 2.25, 0.75);
+
+      const sensor = new THREE.Group();
+      place(box(0.22, 0.14, 0.025, solid(0xf7f3ea, 0.45, 0.08), false), 0, 0, 0, sensor);
+      rig.sensorMat = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        map: sensorScreen.texture,
+        emissive: 0xffffff,
+        emissiveMap: sensorScreen.texture,
+        emissiveIntensity: 0.7,
+        roughness: 0.4,
+      });
+      const display = new THREE.Mesh(new THREE.PlaneGeometry(0.18, 0.1), rig.sensorMat);
+      display.position.z = 0.014;
+      sensor.add(display);
+      const sensorHit = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.32, 0.2), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
+      sensor.add(sensorHit);
+      sensor.position.set(1.2, 1.42, 0.08);
+      tag(sensor, "sensor");
+      addLabel("sensor", 1.2, 1.72, 0.45);
+      rig.sensorScreen = sensorScreen;
+    }
+
+    function addExterior() {
+      const sky = makeCanvas(4, 256, (ctx, w, h) => {
+        ctx.fillStyle = "#8eb4d6";
+        ctx.fillRect(0, 0, w, h);
+      });
+      rig.sky = sky;
+      const skyMesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(18, 10),
+        new THREE.MeshBasicMaterial({ map: sky.texture, toneMapped: false }),
+      );
+      skyMesh.position.set(-3.4, 4.2, 3.2);
+      skyMesh.rotation.y = Math.PI / 2;
+      scene.add(skyMesh);
+
+      rig.groundMat = new THREE.MeshStandardMaterial({ color: 0xa8b084, roughness: 1, metalness: 0 });
+      const ground = new THREE.Mesh(new THREE.PlaneGeometry(28, 22), rig.groundMat);
+      ground.rotation.x = -Math.PI / 2;
+      ground.position.set(-8, -0.02, 3.2);
+      scene.add(ground);
+
+      rig.bldgMat = new THREE.MeshStandardMaterial({ color: 0x706860, roughness: 0.9, metalness: 0 });
+      rig.treeMat = new THREE.MeshStandardMaterial({ color: 0x4e7040, roughness: 0.85, metalness: 0 });
+      rig.nightWinMat = new THREE.MeshStandardMaterial({
+        color: 0x141820,
+        emissive: 0xffc98a,
+        emissiveIntensity: 0,
+        roughness: 0.35,
+      });
+
+      function building(x, y, z, w, h, d, windows) {
+        const group = new THREE.Group();
+        const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), rig.bldgMat);
+        body.position.y = h / 2;
+        group.add(body);
+        windows.forEach(([lx, ly, lz]) => {
+          const win = new THREE.Mesh(new THREE.PlaneGeometry(0.32, 0.42), rig.nightWinMat);
+          win.position.set(lx, ly, lz);
+          win.rotation.y = Math.PI / 2;
+          group.add(win);
+        });
+        group.position.set(x, 0, z);
+        scene.add(group);
+      }
+      building(-6.2, 0, 1.2, 2.2, 5.4, 2.4, [[1.12, 1.4, -0.55], [1.12, 2.6, -0.55], [1.12, 1.4, 0.45], [1.12, 2.6, 0.45], [1.12, 3.8, 0]]);
+      building(-6.6, 0, 5.4, 2.6, 3.6, 2.2, [[1.32, 1.2, -0.4], [1.32, 2.3, -0.4], [1.32, 1.2, 0.45]]);
+
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 1.3, 8), solid(0x5a4634, 0.9, 0));
+      trunk.position.set(-1.8, 0.65, 3.6);
+      const crown = new THREE.Mesh(new THREE.SphereGeometry(0.7, 16, 12), rig.treeMat);
+      crown.position.set(-1.8, 1.7, 3.6);
+      crown.scale.y = 0.8;
+      scene.add(trunk, crown);
+
+      const sunTex = makeCanvas(128, 128, (ctx) => {
+        const grd = ctx.createRadialGradient(64, 64, 6, 64, 64, 64);
+        grd.addColorStop(0, "rgba(255,255,255,1)");
+        grd.addColorStop(0.3, "rgba(255,255,255,0.85)");
+        grd.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.fillStyle = grd;
+        ctx.fillRect(0, 0, 128, 128);
+      }).texture;
+      rig.disc = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: sunTex,
+        transparent: true,
+        depthWrite: false,
+        toneMapped: false,
+        blending: THREE.AdditiveBlending,
+      }));
+      rig.disc.position.set(-3.3, 3.6, 3.4);
+      rig.disc.scale.set(1.2, 1.2, 1);
+      rig.disc.raycast = () => {};
+      scene.add(rig.disc);
+    }
+
+    const TIMES = {
+      day: {
+        sunPos: new THREE.Vector3(-14, 16, 3.2),
+        sunColor: new THREE.Color().setRGB(1, 0.96, 0.88, THREE.SRGBColorSpace),
+        sunIntensity: 2.45,
+        hemiSky: new THREE.Color().setRGB(0.82, 0.89, 0.95, THREE.SRGBColorSpace),
+        hemiGround: new THREE.Color().setRGB(0.72, 0.58, 0.42, THREE.SRGBColorSpace),
+        hemiIntensity: 0.58,
+        exposure: 0.94,
+        env: 0.48,
+        skyTop: [142, 180, 214],
+        skyHorizon: [242, 226, 196],
+        skyBottom: [196, 176, 148],
+        ground: [168, 176, 132],
+        building: [112, 104, 96],
+        tree: [78, 112, 64],
+        disc: [-3.3, 3.6, 3.4],
+        discScale: 1.15,
+        discColor: new THREE.Color().setRGB(1, 0.96, 0.86, THREE.SRGBColorSpace),
+        windows: 0,
+      },
+      dusk: {
+        sunPos: new THREE.Vector3(-16, 3.4, 4.2),
+        sunColor: new THREE.Color().setRGB(1, 0.48, 0.22, THREE.SRGBColorSpace),
+        sunIntensity: 1.75,
+        hemiSky: new THREE.Color().setRGB(0.89, 0.5, 0.36, THREE.SRGBColorSpace),
+        hemiGround: new THREE.Color().setRGB(0.4, 0.26, 0.2, THREE.SRGBColorSpace),
+        hemiIntensity: 0.32,
+        exposure: 0.9,
+        env: 0.3,
+        skyTop: [36, 48, 86],
+        skyHorizon: [227, 106, 69],
+        skyBottom: [64, 36, 40],
+        ground: [92, 70, 56],
+        building: [74, 52, 48],
+        tree: [42, 58, 36],
+        disc: [-3.5, 2.15, 4.1],
+        discScale: 2.5,
+        discColor: new THREE.Color().setRGB(1, 0.58, 0.27, THREE.SRGBColorSpace),
+        windows: 0.55,
+      },
+      night: {
+        sunPos: new THREE.Vector3(-8, 8, 2.4),
+        sunColor: new THREE.Color().setRGB(0.62, 0.72, 1, THREE.SRGBColorSpace),
+        sunIntensity: 0.14,
+        hemiSky: new THREE.Color().setRGB(0.1, 0.15, 0.26, THREE.SRGBColorSpace),
+        hemiGround: new THREE.Color().setRGB(0.05, 0.045, 0.04, THREE.SRGBColorSpace),
+        hemiIntensity: 0.11,
+        exposure: 0.8,
+        env: 0.12,
+        skyTop: [7, 11, 22],
+        skyHorizon: [26, 39, 64],
+        skyBottom: [8, 10, 14],
+        ground: [16, 20, 18],
+        building: [18, 20, 26],
+        tree: [14, 22, 16],
+        disc: [-3.2, 3.3, 2.2],
+        discScale: 0.55,
+        discColor: new THREE.Color().setRGB(0.82, 0.86, 1, THREE.SRGBColorSpace),
+        windows: 1,
+      },
+    };
+
+    const skyNow = {
+      top: TIMES.day.skyTop.slice(),
+      horizon: TIMES.day.skyHorizon.slice(),
+      bottom: TIMES.day.skyBottom.slice(),
+      ground: TIMES.day.ground.slice(),
+      building: TIMES.day.building.slice(),
+      tree: TIMES.day.tree.slice(),
+      windows: 0,
+    };
+    const discTarget = new THREE.Vector3();
+
+    function lerpArr(out, target, k) {
+      out[0] += (target[0] - out[0]) * k;
+      out[1] += (target[1] - out[1]) * k;
+      out[2] += (target[2] - out[2]) * k;
+    }
+
+    function rgb(c) {
+      return "rgb(" + Math.round(c[0]) + "," + Math.round(c[1]) + "," + Math.round(c[2]) + ")";
+    }
+
+    function paintSky() {
+      const ctx = rig.sky.ctx;
+      const grd = ctx.createLinearGradient(0, 0, 0, 256);
+      grd.addColorStop(0, rgb(skyNow.top));
+      grd.addColorStop(0.55, rgb(skyNow.horizon));
+      grd.addColorStop(1, rgb(skyNow.bottom));
+      ctx.fillStyle = grd;
+      ctx.fillRect(0, 0, 4, 256);
+      rig.sky.texture.needsUpdate = true;
+      scene.background.setRGB(skyNow.horizon[0] / 255, skyNow.horizon[1] / 255, skyNow.horizon[2] / 255, THREE.SRGBColorSpace);
+      rig.groundMat.color.setRGB(skyNow.ground[0] / 255, skyNow.ground[1] / 255, skyNow.ground[2] / 255, THREE.SRGBColorSpace);
+      rig.bldgMat.color.setRGB(skyNow.building[0] / 255, skyNow.building[1] / 255, skyNow.building[2] / 255, THREE.SRGBColorSpace);
+      rig.treeMat.color.setRGB(skyNow.tree[0] / 255, skyNow.tree[1] / 255, skyNow.tree[2] / 255, THREE.SRGBColorSpace);
+    }
+
+    function addLights() {
+      hemi = new THREE.HemisphereLight(0xd5e4f2, 0xc4a078, 0.58);
+      scene.add(hemi);
+      sun = new THREE.DirectionalLight(0xfff4e0, 2.45);
+      sun.position.copy(TIMES.day.sunPos);
+      sun.target.position.set(3.2, 1.1, 3);
+      sun.castShadow = true;
+      sun.shadow.mapSize.set(2048, 2048);
+      sun.shadow.camera.near = 1;
+      sun.shadow.camera.far = 48;
+      sun.shadow.camera.left = -12;
+      sun.shadow.camera.right = 12;
+      sun.shadow.camera.top = 12;
+      sun.shadow.camera.bottom = -12;
+      sun.shadow.bias = -0.00035;
+      sun.shadow.normalBias = 0.025;
+      scene.add(sun, sun.target);
+
+      mainSpot = new THREE.SpotLight(0xfff1dd, 18, 7.5, 0.95, 0.62, 2);
+      mainSpot.position.set(1.6, 2.62, 1.7);
+      mainSpot.target.position.set(1.4, 0, 1.7);
+      mainSpot.castShadow = true;
+      mainSpot.shadow.mapSize.set(1024, 1024);
+      mainSpot.shadow.camera.near = 0.4;
+      mainSpot.shadow.camera.far = 6.5;
+      mainSpot.shadow.bias = -0.0005;
+      mainSpot.shadow.normalBias = 0.02;
+      scene.add(mainSpot, mainSpot.target);
+
+      fillA = new THREE.PointLight(0xfff1dd, 4, 8, 2);
+      fillA.position.set(0.9, 2.62, 3.9);
+      fillB = new THREE.PointLight(0xfff1dd, 3.2, 8, 2);
+      fillB.position.set(2.4, 2.62, 4.6);
+      scene.add(fillA, fillB);
+      [[3.4, -0.8, 2], [5.5, 1.7, 2.2], [6.5, 4.9, 2], [1.1, 6.3, 2.4], [4.2, 5.4, 1.5], [4.1, 6.9, 1.1]].forEach(([x, z, power]) => {
+        const bulb = new THREE.Mesh(
+          new THREE.SphereGeometry(0.045, 12, 8),
+          new THREE.MeshStandardMaterial({ color: 0xfff1d6, emissive: 0xffe2b0, emissiveIntensity: 0.55, roughness: 0.4 }),
+        );
+        bulb.position.set(x, 2.72, z);
+        const light = new THREE.PointLight(0xfff1dd, power, 6.5, 2);
+        light.position.set(x, 2.58, z);
+        scene.add(bulb, light);
+      });
+
+      lampSpot = new THREE.SpotLight(0xffd7a8, 12, 4.2, 0.78, 0.7, 2);
+      lampSpot.position.set(LAMP.x, 1.32, LAMP.z);
+      lampSpot.target.position.set(LAMP.x, 0, LAMP.z);
+      lampSpot.castShadow = true;
+      lampSpot.shadow.mapSize.set(1024, 1024);
+      lampSpot.shadow.camera.near = 0.2;
+      lampSpot.shadow.camera.far = 4;
+      lampSpot.shadow.bias = -0.0006;
+      lampSpot.shadow.normalBias = 0.03;
+      scene.add(lampSpot, lampSpot.target);
+      lampPoint = new THREE.PointLight(0xffd7a8, 1.4, 3.2, 2);
+      lampPoint.position.set(LAMP.x, 1.4, LAMP.z);
+      scene.add(lampPoint);
+
+      tvLight = new THREE.PointLight(0xd7e4ff, 0, 5.5, 2);
+      tvLight.position.set(2.7, 1.05, TVP.z);
+      scene.add(tvLight);
+    }
+
+    function syncTime(delta) {
+      const preset = TIMES[S.time];
+      const k = 1 - Math.exp(-2.3 * delta);
+      sun.color.lerp(preset.sunColor, k);
+      sun.intensity += (preset.sunIntensity - sun.intensity) * k;
+      sun.position.lerp(preset.sunPos, k);
+      hemi.color.lerp(preset.hemiSky, k);
+      hemi.groundColor.lerp(preset.hemiGround, k);
+      hemi.intensity += (preset.hemiIntensity - hemi.intensity) * k;
+      renderer.toneMappingExposure += (preset.exposure - renderer.toneMappingExposure) * k;
+      scene.environmentIntensity += (preset.env - scene.environmentIntensity) * k;
+      lerpArr(skyNow.top, preset.skyTop, k);
+      lerpArr(skyNow.horizon, preset.skyHorizon, k);
+      lerpArr(skyNow.bottom, preset.skyBottom, k);
+      lerpArr(skyNow.ground, preset.ground, k);
+      lerpArr(skyNow.building, preset.building, k);
+      lerpArr(skyNow.tree, preset.tree, k);
+      skyNow.windows += (preset.windows - skyNow.windows) * k;
+      rig.nightWinMat.emissiveIntensity = skyNow.windows * 1.8;
+      paintSky();
+      discTarget.set(preset.disc[0], preset.disc[1], preset.disc[2]);
+      rig.disc.position.lerp(discTarget, k);
+      const scale = rig.disc.scale.x + (preset.discScale - rig.disc.scale.x) * k;
+      rig.disc.scale.set(scale, scale, 1);
+      rig.disc.material.color.lerp(preset.discColor, k);
+      sun.castShadow = S.time !== "night";
+    }
+
+    function drawTV(time) {
+      const ctx = rig.tvScreen.ctx;
+      const w = 320;
+      const h = 180;
+      ctx.fillStyle = "#0d1218";
+      ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = "#1c2c34";
+      ctx.fillRect(0, 104, w, 76);
+      ctx.fillStyle = "#c4623a";
+      ctx.fillRect(0, 98, w, 8);
+      ctx.fillStyle = "#eadcc4";
+      ctx.beginPath();
+      ctx.arc(230 + Math.sin(time * 0.15) * 16, 62, 16, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#1a4542";
+      ctx.fillRect((time * 28) % (w + 80) - 80, 112, 70, 28);
+      ctx.fillStyle = "#b08d57";
+      ctx.fillRect((time * 18 + 40) % (w + 60) - 60, 126, 46, 18);
+      ctx.fillStyle = "#000";
+      ctx.fillRect(0, 0, w, 16);
+      ctx.fillRect(0, h - 16, w, 16);
+      ctx.fillStyle = "rgba(255,255,255,0.05)";
+      ctx.fillRect((time * 40) % (w + 50) - 50, 16, 26, h - 32);
+      rig.tvScreen.texture.needsUpdate = true;
+    }
+
+    function drawSensor() {
+      const key = S.room.temp.toFixed(1) + "|" + Math.round(S.room.humidity);
+      if (key === sensorKey) return;
+      sensorKey = key;
+      const ctx = rig.sensorScreen.ctx;
+      ctx.fillStyle = "#10211c";
+      ctx.fillRect(0, 0, 256, 128);
+      ctx.fillStyle = "#d7f5e4";
+      ctx.font = '600 54px "Noto Sans SC", sans-serif';
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(S.room.temp.toFixed(1) + "°", 128, 50);
+      ctx.fillStyle = "#8fb9a6";
+      ctx.font = '500 22px "Noto Sans SC", sans-serif';
+      ctx.fillText("湿度 " + Math.round(S.room.humidity) + "%", 128, 96);
+      rig.sensorScreen.texture.needsUpdate = true;
+    }
+
+    function syncDevices(delta, time) {
+      const mainLevel = S.main.brightness / 100;
+      kelvin(S.main.cct, kMain);
+      mainSpot.color.copy(kMain);
+      mainSpot.intensity = mainLevel * 24;
+      fillA.color.copy(kMain);
+      fillB.color.copy(kMain);
+      fillA.intensity = mainLevel * 5.5;
+      fillB.intensity = mainLevel * 4.2;
+      mainSpot.castShadow = mainLevel > 0.04;
+      rig.mainGlows.forEach((mat) => {
+        if (mainLevel < 0.01) {
+          mat.color.set(0x22211f);
+          mat.emissive.set(0x000000);
+          mat.emissiveIntensity = 0;
+        } else {
+          mat.color.copy(kMain);
+          mat.emissive.copy(kMain);
+          mat.emissiveIntensity = 0.25 + mainLevel * 0.85;
+        }
+      });
+
+      const lampLevel = S.lamp.brightness / 100;
+      kelvin(S.lamp.cct, kLamp);
+      lampSpot.color.copy(kLamp);
+      lampPoint.color.copy(kLamp);
+      lampSpot.intensity = lampLevel * 16;
+      lampPoint.intensity = lampLevel * 1.8;
+      lampSpot.castShadow = lampLevel > 0.04;
+      rig.shadeMat.emissive.copy(kLamp);
+      rig.shadeMat.emissiveIntensity = lampLevel * 0.85;
+      rig.bulbMat.emissive.copy(kLamp);
+      rig.bulbMat.emissiveIntensity = lampLevel > 0 ? 0.35 + lampLevel * 1.3 : 0;
+
+      const open = S.curtain.open / 100;
+      const slide = open * 1.28;
+      const gather = 1 - open * 0.7;
+      rig.curtainL.position.z = -0.8 - slide;
+      rig.curtainR.position.z = 0.8 + slide;
+      rig.curtainL.scale.z = gather;
+      rig.curtainR.scale.z = gather;
+
+      const tvLevel = S.tv.brightness / 100;
+      const tvOn = tvLevel > 0.01;
+      rig.tvMat.emissiveIntensity = tvLevel * 1.15;
+      rig.tvMat.roughness = tvOn ? 0.42 : 0.18;
+      rig.tvMat.metalness = tvOn ? 0.05 : 0.65;
+      tvLight.intensity = tvLevel * 11;
+      tvLight.color.setRGB(0.75, 0.84, 1, THREE.SRGBColorSpace);
+      rig.tvLed.material.emissive.set(tvOn ? 0x9fd4ff : 0x5a1a1a);
+      rig.tvLed.material.emissiveIntensity = tvOn ? 1.2 : 0.35;
+      if (tvOn) {
+        tvDark = false;
+        drawTV(time);
+      } else if (!tvDark) {
+        const ctx = rig.tvScreen.ctx;
+        ctx.fillStyle = "#05070a";
+        ctx.fillRect(0, 0, 320, 180);
+        rig.tvScreen.texture.needsUpdate = true;
+        tvDark = true;
+      }
+
+      const cooling = S.ac.on && S.room.temp > S.ac.temp + 0.25;
+      const flapTarget = S.ac.on ? -0.55 + Math.sin(time * 1.3) * 0.05 : 0.22;
+      rig.acHinge.rotation.x += (flapTarget - rig.acHinge.rotation.x) * (1 - Math.exp(-4 * delta));
+      rig.acLed.material.emissive.set(S.ac.on ? (cooling ? 0x7fd0c0 : 0xe2c37a) : 0x333333);
+      rig.acLed.material.emissiveIntensity = S.ac.on ? 1.1 : 0.05;
+
+      rig.fanSpin.rotation.y += delta * (S.fan.speed / 100) * 13;
+      const wind = S.fan.speed / 100;
+      rig.leaves.forEach((leaf) => {
+        leaf.mesh.rotation.z = leaf.base + Math.sin(time * (1.1 + wind * 2.4) + leaf.phase) * (0.012 + wind * 0.07);
+      });
+
+      const volume = S.speaker.volume / 100;
+      rig.bars.forEach((bar, i) => {
+        const pulse = Math.abs(Math.sin(time * (2.1 + i * 0.31) + i));
+        bar.scale.y = volume < 0.01 ? 0.18 : 0.28 + volume * (0.45 + pulse * 0.9);
+      });
+
+      const yaw = S.camera.on ? Math.sin(time * 0.35) * 0.5 : 0.15;
+      rig.camHead.rotation.y += (yaw - rig.camHead.rotation.y) * (1 - Math.exp(-3 * delta));
+      rig.camLed.material.emissiveIntensity = S.camera.on ? (0.7 + Math.abs(Math.sin(time * 2)) * 0.6) : 0;
+
+      const outdoor = OUTDOOR[S.time];
+      const tempTarget = S.ac.on ? S.ac.temp : outdoor.temp;
+      const tempRate = S.ac.on ? 0.16 : 0.03;
+      S.room.temp += (tempTarget - S.room.temp) * (1 - Math.exp(-tempRate * delta));
+      const humTarget = S.ac.on ? 45 : outdoor.humidity;
+      S.room.humidity += (humTarget - S.room.humidity) * (1 - Math.exp(-0.045 * delta));
+      drawSensor();
+    }
+
+    function watts() {
+      let power = 0;
+      if (S.main.brightness > 0) power += 46 * S.main.brightness / 100;
+      if (S.lamp.brightness > 0) power += 8 * S.lamp.brightness / 100;
+      if (S.tv.brightness > 0) power += 28 + 70 * S.tv.brightness / 100;
+      if (S.ac.on) power += Math.abs(S.room.temp - S.ac.temp) > 0.35 ? 640 : 36;
+      power += 32 * S.fan.speed / 100;
+      power += 18 * S.speaker.volume / 100;
+      if (S.camera.on) power += 5;
+      return Math.round(power);
+    }
+
+    function statusText(id) {
+      if (id === "main" || id === "lamp") {
+        return S[id].brightness > 0.5 ? Math.round(S[id].brightness) + "% · " + Math.round(S[id].cct) + "K" : "关闭";
+      }
+      if (id === "curtain") {
+        if (S.curtain.open < 3) return "闭合";
+        if (S.curtain.open > 97) return "全开";
+        return "开合 " + Math.round(S.curtain.open) + "%";
+      }
+      if (id === "tv") return S.tv.brightness > 0.5 ? "播放 · " + Math.round(S.tv.brightness) + "%" : "待机";
+      if (id === "ac") return S.ac.on ? "设定 " + S.ac.temp.toFixed(1) + "°" : "关闭";
+      if (id === "fan") return S.fan.speed < 1 ? "停止" : "风速 " + Math.round(S.fan.speed);
+      if (id === "speaker") return S.speaker.volume < 1 ? "静音" : "音量 " + Math.round(S.speaker.volume);
+      if (id === "camera") return S.camera.on ? "录制中" : "关闭";
+      return S.room.temp.toFixed(1) + "°C · " + Math.round(S.room.humidity) + "%";
+    }
+
+    function fillRange(input) {
+      if (input.classList.contains("cct") || input.classList.contains("temp")) return;
+      const min = Number(input.min);
+      const max = Number(input.max);
+      const p = ((Number(input.value) - min) / (max - min)) * 100;
+      input.style.background = "linear-gradient(90deg, #1c1915 " + p + "%, #ddd4c6 " + p + "%)";
+    }
+
+    function buildUI() {
+      const list = document.getElementById("deviceList");
+      DEVICES.forEach((device, index) => {
+        const card = document.createElement("article");
+        card.className = "device";
+        card.dataset.id = device.id;
+        const hasPower = device.controls.includes("power");
+        card.innerHTML = `
+          <div class="device-top">
+            <button type="button" class="device-head">
+              <i>${String(index + 1).padStart(2, "0")}</i>
+              <span><strong>${device.name}</strong><small>${device.zone}</small></span>
+              <em class="status"></em>
+            </button>
+          </div>
+          <div class="device-body"></div>`;
+        const body = card.querySelector(".device-body");
+        if (hasPower) {
+          const sw = document.createElement("button");
+          sw.type = "button";
+          sw.className = "switch";
+          sw.dataset.switch = device.id;
+          sw.setAttribute("aria-pressed", "false");
+          sw.textContent = "关";
+          card.querySelector(".device-top").appendChild(sw);
+        }
+        if (device.controls.includes("brightness")) {
+          body.insertAdjacentHTML("beforeend", sliderMarkup(device.id + "-b", "亮度", 0, 100, 1, ""));
+        }
+        if (device.controls.includes("cct")) {
+          body.insertAdjacentHTML("beforeend", sliderMarkup(device.id + "-k", "色温", 2200, 6500, 50, " cct"));
+        }
+        if (device.controls.includes("open")) {
+          body.insertAdjacentHTML("beforeend", sliderMarkup("curtain-o", "开合度", 0, 100, 1, ""));
+        }
+        if (device.controls.includes("temp")) {
+          body.insertAdjacentHTML("beforeend", sliderMarkup("ac-t", "温度", 16, 30, 0.5, " temp"));
+          body.insertAdjacentHTML("beforeend", '<p class="note" id="acLive"></p>');
+        }
+        if (device.controls.includes("speed")) {
+          body.insertAdjacentHTML("beforeend", sliderMarkup("fan-s", "风速", 0, 100, 1, ""));
+        }
+        if (device.controls.includes("volume")) {
+          body.insertAdjacentHTML("beforeend", sliderMarkup("spk-v", "音量", 0, 100, 1, ""));
+        }
+        if (device.controls.includes("sensor")) {
+          body.insertAdjacentHTML("beforeend", '<div class="sensor-read"><strong id="sensorTemp">—</strong><span id="sensorHum">湿度 —</span></div><p class="note">读数随空调和天光慢慢变化。</p>');
+        }
+        list.appendChild(card);
+      });
+
+      document.getElementById("deviceList").addEventListener("click", (event) => {
+        const sw = event.target.closest("[data-switch]");
+        if (sw) {
+          event.stopPropagation();
+          togglePower(sw.dataset.switch);
+          selectDevice(sw.dataset.switch, false);
+          return;
+        }
+        const head = event.target.closest(".device-head");
+        if (head) selectDevice(head.closest(".device").dataset.id, true);
+      });
+      document.getElementById("deviceList").addEventListener("input", (event) => {
+        if (event.target.matches("input")) applySlider(event.target.id, Number(event.target.value));
+      });
+      document.getElementById("timeSeg").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-time]");
+        if (!button) return;
+        S.time = button.dataset.time;
+        paintUI();
+      });
+      document.getElementById("modeBar").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-mode]");
+        if (button) runMode(button.dataset.mode);
+      });
+      document.getElementById("overview").addEventListener("click", () => frameCamera("overview"));
+      document.getElementById("navSeg").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-nav]");
+        if (!button) return;
+        setNav(button.dataset.nav);
+        if (button.dataset.nav === "walk") renderer.domElement.requestPointerLock?.();
+        else if (document.pointerLockElement) document.exitPointerLock();
+      });
+      document.querySelectorAll("input[type=range]").forEach((input) => {
+        input.addEventListener("pointerdown", () => { activeInput = input; });
+      });
+      window.addEventListener("pointerup", () => { activeInput = null; });
+      window.addEventListener("keydown", (event) => {
+        if (moveKeys.has(event.code)) {
+          keysDown.add(event.code);
+          if (nav === "walk" || navBlend) event.preventDefault();
+        }
+        if (event.target.matches("input, textarea")) return;
+        const modes = { Digit1: "home", Digit2: "away", Digit3: "cinema", Digit4: "sleep" };
+        if (modes[event.code]) {
+          runMode(modes[event.code]);
+          event.preventDefault();
+        }
+      });
+      window.addEventListener("keyup", (event) => keysDown.delete(event.code));
+      window.addEventListener("blur", () => keysDown.clear());
+    }
+
+    function sliderMarkup(id, label, min, max, step, extra) {
+      return `<label class="slider"><span><em>${label}</em><b data-out="${id}">—</b></span><input id="${id}" class="${extra.trim()}" type="range" min="${min}" max="${max}" step="${step}" /></label>`;
+    }
+
+    function setOut(id, text) {
+      const node = document.querySelector('[data-out="' + id + '"]');
+      if (node) node.textContent = text;
+    }
+
+    function setBrightness(dev, value) {
+      if (value > 0) dev.last = value;
+      else if (dev.brightness > 0) dev.last = dev.brightness;
+      dev.brightness = value;
+      dev.on = value > 0;
+    }
+
+    function togglePower(id) {
+      touch();
+      if (id === "main" || id === "lamp" || id === "tv") {
+        const dev = S[id];
+        if (dev.on && dev.brightness > 0) setBrightness(dev, 0);
+        else setBrightness(dev, dev.last || 68);
+      } else if (id === "ac" || id === "camera") {
+        S[id].on = !S[id].on;
+      }
+      paintUI();
+    }
+
+    function applySlider(id, value) {
+      touch();
+      if (id === "main-b") setBrightness(S.main, value);
+      else if (id === "lamp-b") setBrightness(S.lamp, value);
+      else if (id === "tv-b") setBrightness(S.tv, value);
+      else if (id === "main-k") S.main.cct = value;
+      else if (id === "lamp-k") S.lamp.cct = value;
+      else if (id === "curtain-o") S.curtain.open = value;
+      else if (id === "ac-t") S.ac.temp = value;
+      else if (id === "fan-s") S.fan.speed = value;
+      else if (id === "spk-v") S.speaker.volume = value;
+      paintUI();
+    }
+
+    function touch() {
+      tween = null;
+      if (S.mode !== "custom") S.mode = "custom";
+    }
+
+    function runMode(name) {
+      const from = {};
+      const to = MODES[name];
+      Object.keys(to).forEach((id) => { from[id] = { ...S[id] }; });
+      tween = { from, to, t0: performance.now(), dur: REDUCE ? 0 : 1100, mode: name };
+      S.mode = name;
+      paintUI();
+    }
+
+    function stepTween() {
+      if (!tween) return;
+      const u = tween.dur === 0 ? 1 : Math.min(1, (performance.now() - tween.t0) / tween.dur);
+      const e = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
+      Object.keys(tween.to).forEach((id) => {
+        Object.keys(tween.to[id]).forEach((key) => {
+          const target = tween.to[id][key];
+          const source = tween.from[id][key];
+          S[id][key] = typeof target === "number" ? source + (target - source) * e : (e < 0.5 ? source : target);
+        });
+      });
+      if (u >= 1) {
+        ["main", "lamp", "tv"].forEach((id) => {
+          if (S[id].brightness > 0) S[id].last = S[id].brightness;
+        });
+        tween = null;
+      }
+    }
+
+    function selectDevice(id, frame) {
+      S.selected = id;
+      paintSelection();
+      const card = document.querySelector('.device[data-id="' + id + '"]');
+      if (card) card.scrollIntoView({ block: "nearest", behavior: REDUCE ? "auto" : "smooth" });
+      if (frame) frameCamera(id);
+    }
+
+    function paintSelection() {
+      document.querySelectorAll(".device").forEach((el) => {
+        el.classList.toggle("is-active", el.dataset.id === S.selected);
+      });
+      Object.entries(labels).forEach(([id, sprite]) => {
+        sprite.visible = id === S.selected;
+      });
+    }
+
+    function easeInOut(u) {
+      return u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
+    }
+
+    function blockedAt(x, z) {
+      if (x < 0.02 || x > 7.95 || z < -2.45 || z > 7.62) return true;
+      for (let i = 0; i < BLOCKS.length; i += 1) {
+        const box = BLOCKS[i];
+        const cx = THREE.MathUtils.clamp(x, box.minX, box.maxX);
+        const cz = THREE.MathUtils.clamp(z, box.minZ, box.maxZ);
+        const dx = x - cx;
+        const dz = z - cz;
+        if (dx * dx + dz * dz < BODY_R * BODY_R) return true;
+      }
+      return false;
+    }
+
+    function moveBody(x, z, dx, dz) {
+      const dist = Math.hypot(dx, dz);
+      const steps = Math.max(1, Math.ceil(dist / 0.08));
+      const sx = dx / steps;
+      const sz = dz / steps;
+      for (let i = 0; i < steps; i += 1) {
+        if (!blockedAt(x + sx, z)) x += sx;
+        if (!blockedAt(x, z + sz)) z += sz;
+      }
+      return { x, z };
+    }
+
+    function resolveWalkPosition(origin) {
+      const x0 = THREE.MathUtils.clamp(origin.x, 0.35, 7.6);
+      const z0 = THREE.MathUtils.clamp(origin.z, -2.1, 7.2);
+      if (!blockedAt(x0, z0)) return new THREE.Vector3(x0, EYE, z0);
+      for (let ring = 0.2; ring <= 4.2; ring += 0.2) {
+        for (let i = 0; i < 16; i += 1) {
+          const angle = (i / 16) * Math.PI * 2;
+          const x = THREE.MathUtils.clamp(x0 + Math.cos(angle) * ring, 0.35, 7.6);
+          const z = THREE.MathUtils.clamp(z0 + Math.sin(angle) * ring, -2.1, 7.2);
+          if (!blockedAt(x, z)) return new THREE.Vector3(x, EYE, z);
+        }
+      }
+      return new THREE.Vector3(1.7, EYE, 2.3);
+    }
+
+    function lookQuaternion(position, target, out) {
+      const marker = lookQuaternion.marker || (lookQuaternion.marker = new THREE.Object3D());
+      marker.position.copy(position);
+      marker.up.copy(worldUp);
+      marker.lookAt(target);
+      return out.copy(marker.quaternion);
+    }
+
+    function paintNav() {
+      const showing = navBlend ? navBlend.next : nav;
+      document.querySelectorAll("[data-nav]").forEach((button) => {
+        button.classList.toggle("is-active", button.dataset.nav === showing);
+      });
+      const note = document.getElementById("navNote");
+      if (!note) return;
+      note.textContent = showing === "walk"
+        ? "眼高 1.62 米。WASD 走动，鼠标转向，身体会被墙和家具挡住。"
+        : "左键旋转，右键平移，滚轮缩放。角度和距离都不再锁死。";
+    }
+
+    function settleOrbit() {
+      const position = camera.position.clone();
+      const quaternion = camera.quaternion.clone();
+      const target = controls.target.clone();
+      for (let i = 0; i < 80; i += 1) controls.update();
+      camera.position.copy(position);
+      camera.quaternion.copy(quaternion);
+      controls.target.copy(target);
+    }
+
+    function startBlend(toPos, toQuat, next, target) {
+      if (nav === "orbit" || controls.enabled) settleOrbit();
+      navBlend = {
+        fromPos: camera.position.clone(),
+        toPos,
+        fromQuat: camera.quaternion.clone(),
+        toQuat,
+        t0: performance.now(),
+        dur: REDUCE ? 0 : 880,
+        next,
+        target,
+      };
+      camTween = null;
+      controls.enabled = false;
+      paintNav();
+    }
+
+    function beginWalk() {
+      if (nav === "walk" && !navBlend) return;
+      const toPos = resolveWalkPosition(camera.position);
+      startBlend(toPos, camera.quaternion.clone(), "walk", null);
+    }
+
+    function beginOrbit() {
+      if (nav === "orbit" && !navBlend) return;
+      camera.getWorldDirection(walkDir);
+      if (walkDir.lengthSq() < 1e-8) walkDir.set(0, 0, -1);
+      else walkDir.normalize();
+      const look = camera.position.clone().addScaledVector(walkDir, 3.2);
+      const toPos = camera.position.clone().addScaledVector(walkDir, -0.75);
+      toPos.y = Math.min(2.45, camera.position.y + 0.32);
+      let toQuat = camera.quaternion.clone();
+      if (!blockedAt(toPos.x, toPos.z)) {
+        toQuat = lookQuaternion(toPos, look, new THREE.Quaternion());
+      } else {
+        toPos.copy(camera.position);
+      }
+      startBlend(toPos, toQuat, "orbit", look);
+    }
+
+    function setNav(next) {
+      if (next === "walk") beginWalk();
+      else beginOrbit();
+    }
+
+    function stepNavBlend() {
+      if (!navBlend) return;
+      const u = navBlend.dur === 0 ? 1 : Math.min(1, (performance.now() - navBlend.t0) / navBlend.dur);
+      const e = easeInOut(u);
+      camera.position.lerpVectors(navBlend.fromPos, navBlend.toPos, e);
+      camera.quaternion.slerpQuaternions(navBlend.fromQuat, navBlend.toQuat, e);
+      if (u < 1) return;
+      nav = navBlend.next;
+      if (nav === "orbit") {
+        controls.target.copy(navBlend.target);
+        controls.enabled = true;
+        controls.update();
+      } else {
+        camera.position.y = EYE;
+        const euler = new THREE.Euler().setFromQuaternion(camera.quaternion, "YXZ");
+        euler.z = 0;
+        camera.quaternion.setFromEuler(euler);
+        controls.enabled = false;
+      }
+      navBlend = null;
+      paintNav();
+    }
+
+    function stepWalk(delta) {
+      camera.getWorldDirection(walkDir);
+      walkDir.y = 0;
+      if (walkDir.lengthSq() < 1e-8) walkDir.set(0, 0, -1);
+      else walkDir.normalize();
+      walkRight.crossVectors(walkDir, worldUp).normalize();
+      let ix = 0;
+      let iz = 0;
+      if (keysDown.has("KeyW") || keysDown.has("ArrowUp")) { ix += walkDir.x; iz += walkDir.z; }
+      if (keysDown.has("KeyS") || keysDown.has("ArrowDown")) { ix -= walkDir.x; iz -= walkDir.z; }
+      if (keysDown.has("KeyD") || keysDown.has("ArrowRight")) { ix += walkRight.x; iz += walkRight.z; }
+      if (keysDown.has("KeyA") || keysDown.has("ArrowLeft")) { ix -= walkRight.x; iz -= walkRight.z; }
+      const len = Math.hypot(ix, iz);
+      if (len > 0) {
+        const scale = (1.55 * delta) / len;
+        const moved = moveBody(camera.position.x, camera.position.z, ix * scale, iz * scale);
+        camera.position.x = moved.x;
+        camera.position.z = moved.z;
+      }
+      camera.position.y = EYE;
+    }
+
+    function lookBy(dx, dy) {
+      if (nav !== "walk" || navBlend) return;
+      const euler = new THREE.Euler().setFromQuaternion(camera.quaternion, "YXZ");
+      euler.y -= dx * 0.0022;
+      euler.x = THREE.MathUtils.clamp(euler.x - dy * 0.0022, -1.45, 1.45);
+      euler.z = 0;
+      camera.quaternion.setFromEuler(euler);
+    }
+
+    function frameCamera(id) {
+      const view = VIEWS[id] || VIEWS.overview;
+      const endPos = new THREE.Vector3(...view.p);
+      const endTarget = new THREE.Vector3(...view.t);
+      if (nav !== "orbit" || navBlend) {
+        if (document.pointerLockElement) document.exitPointerLock();
+        startBlend(endPos, lookQuaternion(endPos, endTarget, new THREE.Quaternion()), "orbit", endTarget);
+        return;
+      }
+      camTween = {
+        fromP: camera.position.clone(),
+        fromT: controls.target.clone(),
+        toP: endPos,
+        toT: endTarget,
+        t0: performance.now(),
+        dur: REDUCE ? 0 : 900,
+      };
+    }
+
+    function stepCamera() {
+      if (!camTween || nav !== "orbit" || navBlend) return;
+      const u = camTween.dur === 0 ? 1 : Math.min(1, (performance.now() - camTween.t0) / camTween.dur);
+      const e = easeInOut(u);
+      camera.position.lerpVectors(camTween.fromP, camTween.toP, e);
+      controls.target.lerpVectors(camTween.fromT, camTween.toT, e);
+      if (u >= 1) camTween = null;
+    }
+
+    function paintUI() {
+      document.querySelectorAll("[data-time]").forEach((button) => {
+        button.classList.toggle("is-active", button.dataset.time === S.time);
+      });
+      document.querySelectorAll("[data-mode]").forEach((button) => {
+        button.classList.toggle("is-active", button.dataset.mode === S.mode);
+      });
+      document.getElementById("timeNote").textContent = TIME_NOTE[S.time];
+      document.getElementById("modeNote").textContent = MODE_NOTE[S.mode];
+      document.getElementById("capLine").textContent = OUTDOOR[S.time].line;
+      paintNav();
+      document.getElementById("roomTemp").textContent = S.room.temp.toFixed(1) + "°";
+      document.getElementById("roomMeta").textContent = "湿度 " + Math.round(S.room.humidity) + "% · 约 " + watts() + " W";
+      const sensorTemp = document.getElementById("sensorTemp");
+      if (sensorTemp) {
+        sensorTemp.textContent = S.room.temp.toFixed(1) + "°";
+        document.getElementById("sensorHum").textContent = "湿度 " + Math.round(S.room.humidity) + "%";
+      }
+      const acLive = document.getElementById("acLive");
+      if (acLive) acLive.textContent = "室温 " + S.room.temp.toFixed(1) + "°";
+      document.querySelectorAll(".device").forEach((card) => {
+        const status = card.querySelector(".status");
+        if (status) status.textContent = statusText(card.dataset.id);
+      });
+      document.querySelectorAll("[data-switch]").forEach((sw) => {
+        const id = sw.dataset.switch;
+        const on = id === "main" || id === "lamp" || id === "tv" ? S[id].brightness > 0.5 : S[id].on;
+        sw.setAttribute("aria-pressed", on ? "true" : "false");
+        sw.textContent = on ? "开" : "关";
+      });
+      const pairs = [
+        ["main-b", S.main.brightness, Math.round(S.main.brightness) + "%"],
+        ["lamp-b", S.lamp.brightness, Math.round(S.lamp.brightness) + "%"],
+        ["tv-b", S.tv.brightness, Math.round(S.tv.brightness) + "%"],
+        ["main-k", S.main.cct, Math.round(S.main.cct) + " K"],
+        ["lamp-k", S.lamp.cct, Math.round(S.lamp.cct) + " K"],
+        ["curtain-o", S.curtain.open, Math.round(S.curtain.open) + "%"],
+        ["ac-t", S.ac.temp, S.ac.temp.toFixed(1) + "°C"],
+        ["fan-s", S.fan.speed, Math.round(S.fan.speed)],
+        ["spk-v", S.speaker.volume, Math.round(S.speaker.volume)],
+      ];
+      pairs.forEach(([id, value, label]) => {
+        const input = document.getElementById(id);
+        if (!input) return;
+        if (input !== activeInput) input.value = value;
+        setOut(id, label);
+        fillRange(input);
+      });
+      paintSelection();
+    }
+
+    function pickDevice(event) {
+      const rect = renderer.domElement.getBoundingClientRect();
+      pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(pointer, camera);
+      const hits = raycaster.intersectObjects(pickRoots, true);
+      for (let i = 0; i < hits.length; i += 1) {
+        let object = hits[i].object;
+        while (object) {
+          if (object.userData && object.userData.device) return object.userData.device;
+          object = object.parent;
+        }
+      }
+      return null;
+    }
+
+    function bindPointer() {
+      let downX = 0;
+      let downY = 0;
+      let moved = false;
+      renderer.domElement.addEventListener("pointerdown", (event) => {
+        downX = event.clientX;
+        downY = event.clientY;
+        moved = false;
+      });
+      renderer.domElement.addEventListener("pointermove", (event) => {
+        if (Math.hypot(event.clientX - downX, event.clientY - downY) > 5) moved = true;
+        if (nav === "walk" && !navBlend && !document.pointerLockElement && (event.buttons & 1)) {
+          lookBy(event.movementX, event.movementY);
+        }
+        renderer.domElement.style.cursor = nav === "walk" ? "crosshair" : (pickDevice(event) ? "pointer" : "grab");
+      });
+      document.addEventListener("mousemove", (event) => {
+        if (document.pointerLockElement === renderer.domElement) lookBy(event.movementX, event.movementY);
+      });
+      renderer.domElement.addEventListener("pointerup", (event) => {
+        if (moved || event.button !== 0) return;
+        if (nav === "walk") {
+          const id = pickDevice(event);
+          if (id) selectDevice(id, false);
+          else if (!document.pointerLockElement) renderer.domElement.requestPointerLock?.();
+          return;
+        }
+        const id = pickDevice(event);
+        if (id) selectDevice(id, false);
+      });
+      renderer.domElement.addEventListener("dblclick", (event) => {
+        if (nav === "walk") return;
+        if (!pickDevice(event)) frameCamera("overview");
+      });
+    }
+
+    function resize() {
+      const stage = document.getElementById("stage");
+      const w = stage.clientWidth;
+      const h = stage.clientHeight;
+      if (w < 2 || h < 2) return;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
+      renderer.setSize(w, h, false);
+    }
+
+    function animate() {
+      const delta = Math.min(clock.getDelta(), 0.05);
+      const time = clock.elapsedTime;
+      stepTween();
+      if (navBlend) stepNavBlend();
+      else if (nav === "walk") stepWalk(delta);
+      else {
+        stepCamera();
+        controls.update();
+      }
+      syncTime(delta);
+      syncDevices(delta, time);
+      uiClock += delta;
+      if (tween || uiClock > 0.25) {
+        uiClock = 0;
+        paintUI();
+      }
+      renderer.render(scene, camera);
+    }
+
+    async function init() {
+      const stage = document.getElementById("stage");
+      renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 0.94;
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
+      stage.appendChild(renderer.domElement);
+
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xc5d4e4);
+      scene.environmentIntensity = 0.48;
+      camera = new THREE.PerspectiveCamera(52, 1, 0.06, 200);
+      camera.position.set(2.15, 1.7, 4.55);
+      controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.08;
+      controls.enablePan = true;
+      controls.screenSpacePanning = true;
+      controls.target.set(0.55, 0.88, -0.85);
+      controls.minDistance = 0.15;
+      controls.maxDistance = Infinity;
+      controls.minPolarAngle = 0;
+      controls.maxPolarAngle = Math.PI;
+      controls.minAzimuthAngle = -Infinity;
+      controls.maxAzimuthAngle = Infinity;
+      controls.rotateSpeed = 0.85;
+      controls.zoomSpeed = 0.85;
+      controls.panSpeed = 1;
+      controls.addEventListener("start", () => { camTween = null; });
+
+      try {
+        scene.environment = makePaletteEnvironment();
+      } catch (error) {
+        console.warn(error);
+      }
+      createSurfaces();
+
+      const arts = {
+        tv: makeArt(768, 460, (ctx, w, h) => {
+          ctx.fillStyle = "#e7d3b4";
+          ctx.fillRect(0, 0, w, h);
+          ctx.fillStyle = "#1a4542";
+          ctx.beginPath();
+          ctx.arc(250, 230, 120, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#b08d57";
+          ctx.fillRect(470, 80, 46, 300);
+          ctx.fillStyle = "#c4623a";
+          ctx.fillRect(560, 250, 90, 90);
+        }),
+        west: makeArt(480, 680, (ctx, w, h) => {
+          ctx.fillStyle = "#f3ecdf";
+          ctx.fillRect(0, 0, w, h);
+          ctx.fillStyle = "#1a4542";
+          ctx.fillRect(60, 70, 200, 360);
+          ctx.fillStyle = "#c4623a";
+          ctx.fillRect(220, 300, 180, 70);
+          ctx.fillStyle = "#b08d57";
+          ctx.fillRect(80, 470, 300, 24);
+        }),
+        east: makeArt(520, 680, (ctx, w, h) => {
+          ctx.fillStyle = "#1a4542";
+          ctx.fillRect(0, 0, w, h);
+          ctx.strokeStyle = "#f3ecdf";
+          ctx.lineWidth = 8;
+          ctx.beginPath();
+          ctx.moveTo(80, 520);
+          ctx.lineTo(440, 160);
+          ctx.stroke();
+          ctx.fillStyle = "#c4623a";
+          ctx.beginPath();
+          ctx.arc(360, 240, 54, 0, Math.PI * 2);
+          ctx.fill();
+        }),
+      };
+
+      addLights();
+      addShell();
+      addFurniture(arts);
+      addRooms();
+      const tvScreen = makeCanvas(320, 180, (ctx, w, h) => {
+        ctx.fillStyle = "#05070a";
+        ctx.fillRect(0, 0, w, h);
+      });
+      const sensorScreen = makeCanvas(256, 128, (ctx) => {
+        ctx.fillStyle = "#10211c";
+        ctx.fillRect(0, 0, 256, 128);
+      });
+      addDevices(tvScreen, sensorScreen);
+      addExterior();
+      paintSky();
+      buildUI();
+      paintUI();
+      bindPointer();
+      resize();
+      new ResizeObserver(resize).observe(stage);
+      frameCamera("overview");
+      renderer.setAnimationLoop(animate);
+      document.fonts.ready.then(() => {
+        Object.values(labels).forEach(redrawLabel);
+        sensorKey = "";
+        drawSensor();
+      });
+      const boot = document.getElementById("boot");
+      boot.dataset.ready = "1";
+      boot.classList.add("is-done");
+      setTimeout(() => boot.remove(), 600);
+    }
+
+    init().catch((error) => {
+      const line = document.getElementById("bootLine");
+      if (line) line.textContent = "场景没有建成：" + error.message;
+      console.error(error);
+    });
+  </script>
+</body>
+</html>
