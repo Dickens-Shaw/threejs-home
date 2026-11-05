@@ -932,13 +932,15 @@ function loadLibrary(){
   lib.rooms.forEach(normalizePlan);
   return lib;
 }
+function stockBeikePlan(plan){
+  return !!plan && plan.id === 'beike-3br' && !(plan.bays || []).length && (plan.furniture || []).length < 20;
+}
 function defaultBeikeRoom(room){
-  if (!room) return false;
-  if (room.id === 'pmw2wiisq20') return true;
+  if (!room || room.id === 'pmw2wiisq20') return false;
   return room.sourceId === 'beike-3br' && !(room.bays || []).length && (room.furniture || []).length < 20;
 }
 function dropDefaultBeike(lib){
-  lib.plans = (lib.plans || []).filter(p => p.id !== 'beike-3br');
+  lib.plans = (lib.plans || []).filter(p => !stockBeikePlan(p));
   if (Array.isArray(lib.rooms)) lib.rooms = lib.rooms.filter(r => !defaultBeikeRoom(r));
 }
 function roomFromPlan(plan){

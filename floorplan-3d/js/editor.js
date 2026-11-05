@@ -1686,22 +1686,7 @@ function absorbCustomNote(listed, furn){
   const n = (result && result.added || 0) + (result && result.updated || 0);
   return n ? tr(`，自定义家具 ${n} 件`, `, ${n} custom pieces`) : '';
 }
-function shippedCustomFurn(row){
-  if (!row) return false;
-  return (row.type === 'cylindricalaircon' && row.name === '圆柱柜机空调' && row.w === 415 && row.d === 430)
-    || (row.type === 'laundrycabinet' && row.name === '浅灰洗衣机柜' && row.w === 1050 && row.d === 630);
-}
 function mountFurnExtra(){
-  try {
-    const raw = localStorage.getItem(FURN_EXTRA_KEY);
-    if (raw != null){
-      const rows = JSON.parse(raw);
-      if (Array.isArray(rows)){
-        const next = rows.filter(r => !shippedCustomFurn(r));
-        if (next.length !== rows.length) localStorage.setItem(FURN_EXTRA_KEY, JSON.stringify(next));
-      }
-    }
-  } catch(e) {}
   furnExtraRows().forEach(r => {
     if (!r || stockFurn(r.type, r.name, r.w, r.d)) return;
     const parts = parseCustomParts(r.parts);
