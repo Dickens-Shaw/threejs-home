@@ -21,6 +21,7 @@ export default class Stats
     {
         this.active = true
 
+        document.body.classList.add('has-stats')
         document.body.appendChild(this.instance.dom)
     }
 
@@ -28,6 +29,7 @@ export default class Stats
     {
         this.active = false
 
+        document.body.classList.remove('has-stats')
         document.body.removeChild(this.instance.dom)
     }
 

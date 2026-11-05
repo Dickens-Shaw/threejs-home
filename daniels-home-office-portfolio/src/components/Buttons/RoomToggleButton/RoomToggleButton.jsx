@@ -1,8 +1,7 @@
-import React, { useRef, useEffect } from "react";
+import { useRef, useEffect } from "react";
 import "./RoomToggleButton.scss";
 import { useToggleRoomStore } from "../../../stores/toggleRoomStore";
 import gsap from "gsap";
-import { useNavigate } from "react-router";
 
 const RoomToggleButton = () => {
   const { isDarkRoom, setDarkRoom, isTransitioning, isBeforeZooming } =

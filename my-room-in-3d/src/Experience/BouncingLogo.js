@@ -167,6 +167,9 @@ export default class BouncingLogo
 
     update()
     {
+        if(this.world.assetViews && this.world.assetViews.suspendMotion)
+            return
+
         this.animations.z += this.animations.speed.z * this.time.delta
         this.animations.y += this.animations.speed.y * this.time.delta
 

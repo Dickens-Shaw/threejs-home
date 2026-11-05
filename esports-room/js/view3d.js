@@ -15,9 +15,9 @@ const stage = $('#stage'), host = $('#view3d');
 const OX = 6000, OY = 5300, H = 2.8, FOV = 45;       // 户型中心放在世界原点，层高 2.8 m
 const wx = x => (x - OX) / 1000, wz = y => (y - OY) / 1000, M = v => v / 1000;
 const SW = () => stage.clientWidth, SH = () => stage.clientHeight;
-const opt = {cut:2.8, furn:true, labels:true, night:false, hour:10, mode:'orbit'};
+const opt = {cut:2.8, furn:true, labels:true, night:false, hour:10, mode:'orbit', exhibit:false};
 
-let inited = false, active = false, raf = 0, anim = null, fly = null;
+let inited = false, active = false, raf = 0, anim = null, fly = null, entering = false;
 let renderer, labelRenderer, scene, camera, orbit, walkCtl, hemi, sun, ground, glassMat, wallMat, capMat, frameMat;
 let archFloor, archUp, furnG, labelG, lampG, colliders = [], selKey = null, selHelper = null;
 let sigArch = '', sigFurn = '', sigLabels = '', grow = 1, furnGrow = 1;
@@ -1238,9 +1238,84 @@ function addOpening3D(op, w, top){
   }
 }
 
+function shellBox(){
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const r of ROOMS){
+    if (r.counted === false) continue;
+    for (const p of r.poly || []){ x0 = Math.min(x0, p[0]); y0 = Math.min(y0, p[1]); x1 = Math.max(x1, p[0]); y1 = Math.max(y1, p[1]); }
+  }
+  if (!isFinite(x0)) return {x0:BOUNDS.x, y0:BOUNDS.y, x1:BOUNDS.x + BOUNDS.w, y1:BOUNDS.y + BOUNDS.h};
+  return {x0, y0, x1, y1};
+}
+// 镜头在房间东南外侧。朝向镜头的两面墙藏起来，后墙和另一侧留着。
+function exhibitHidden(){
+  const box = shellBox(), px = box.x1 + (box.x1 - box.x0) * .35, py = box.y1 + (box.y1 - box.y0) * .35;
+  const cx = (box.x0 + box.x1) / 2, cy = (box.y0 + box.y1) / 2;
+  const scored = WALLS.filter(w => !state.demolished.includes(w.id)).map(w => {
+    const mx = (w.a[0] + w.b[0]) / 2, my = (w.a[1] + w.b[1]) / 2;
+    const dx = w.b[0] - w.a[0], dy = w.b[1] - w.a[1];
+    let nx = -dy, ny = dx, nlen = Math.hypot(nx, ny) || 1;
+    nx /= nlen; ny /= nlen;
+    if ((cx - mx) * nx + (cy - my) * ny > 0){ nx = -nx; ny = -ny; }
+    return {id:w.id, s:(px - mx) * nx + (py - my) * ny};
+  }).sort((a, b) => b.s - a.s);
+  return new Set(scored.filter((w, i) => i < 2 && w.s > 0).map(w => w.id));
+}
+function exhibitPose(){
+  const box = shellBox();
+  const c = new THREE.Vector3(wx((box.x0 + box.x1) / 2), .9, wz((box.y0 + box.y1) / 2));
+  const size = Math.max(M(box.x1 - box.x0), M(box.y1 - box.y0), 2.4);
+  const dist = size * .72 / Math.tan(THREE.MathUtils.degToRad(10));
+  const elev = THREE.MathUtils.degToRad(30), horiz = Math.cos(elev) * dist, y = Math.sin(elev) * dist;
+  const dir = new THREE.Vector3(1, 0, 1).normalize();
+  return pose(c, c.clone().add(new THREE.Vector3(dir.x * horiz, y, dir.z * horiz)));
+}
+function lockExhibitOrbit(P){
+  const dx = P.p.x - P.t.x, dz = P.p.z - P.t.z, az = Math.atan2(dx, dz);
+  orbit.minAzimuthAngle = az - Math.PI / 4;
+  orbit.maxAzimuthAngle = az + Math.PI / 4;
+  orbit.minPolarAngle = Math.PI / 2 - THREE.MathUtils.degToRad(52);
+  orbit.maxPolarAngle = Math.PI / 2 - THREE.MathUtils.degToRad(16);
+  orbit.maxDistance = Math.max(45, P.p.distanceTo(P.t) * 1.8);
+  orbit.enablePan = false;
+}
+function leaveExhibit(){
+  if (!opt.exhibit) return;
+  opt.exhibit = false;
+  camera.fov = FOV; camera.updateProjectionMatrix();
+  orbit.minAzimuthAngle = -Infinity; orbit.maxAzimuthAngle = Infinity;
+  orbit.minPolarAngle = 0; orbit.maxPolarAngle = Math.PI * .495;
+  orbit.minDistance = 1.5; orbit.maxDistance = 45; orbit.enablePan = true;
+  syncStageBtn(); syncCutBtns(); syncHint3d();
+  if (inited && active) sync(true);
+}
+function enterExhibit(){
+  if (studio || !active) return;
+  // 进场的两秒里工具栏已经能点。不取消的话，这次点击会被动画吃掉，画面完全不动。
+  if (anim){
+    if (!entering) return;
+    const res = anim.res; anim = null; res();
+  }
+  if (opt.mode === 'walk'){
+    walkCtl.unlock(); stopTouchWalk();
+    opt.mode = 'orbit'; orbit.enabled = true;
+    $('#walkOverlay').style.display = 'none'; $('#cross').style.display = 'none';
+    syncModeBtns();
+    archUp.traverse(o => { if (o.userData.walkOnly) o.visible = false; });
+  }
+  opt.exhibit = true;
+  grow = furnGrow = 1;
+  camera.fov = 20; camera.updateProjectionMatrix();
+  const P = exhibitPose();
+  lockExhibitOrbit(P);
+  syncStageBtn(); syncCutBtns(); syncHint3d();
+  sync(true);
+  flyTo(P);
+}
 function buildArch(){
   clearGroup(archFloor); clearGroup(archUp); lampG.clear(); doors.length = 0; colliders = [];
-  const top = opt.cut;
+  const hidden = opt.exhibit ? exhibitHidden() : new Set();
+  const top = opt.exhibit ? H : opt.cut;
   ROOMS.forEach(r => {
     const m = floorMat(state.rooms[r.id].mat), bay = r.counted === false;
     const geo = bay ? new THREE.ExtrudeGeometry(shapeOf(r.poly), {depth:.45, bevelEnabled:false}) : new THREE.ShapeGeometry(shapeOf(r.poly));
@@ -1250,16 +1325,16 @@ function buildArch(){
     if (bay){ fl.castShadow = true; archUp.add(fl); } else archFloor.add(fl);
     // 天花：法线朝下，只在室内仰视时可见
     const cg = new THREE.ShapeGeometry(shapeOf(r.poly, true)); cg.rotateX(Math.PI/2);
-    const ceil = new THREE.Mesh(cg, mat('#fbfaf7', {roughness:1})); ceil.position.y = H; ceil.visible = top >= H; archUp.add(ceil);
+    const ceil = new THREE.Mesh(cg, mat('#fbfaf7', {roughness:1})); ceil.position.y = H; ceil.visible = !opt.exhibit && top >= H; archUp.add(ceil);
     if (r.at){
       const lamp = new THREE.Mesh(new THREE.CylinderGeometry(.22, .22, .02, 32), new THREE.MeshStandardMaterial({color:'#fff', emissive:'#fff2d6', emissiveIntensity:.3}));
-      lamp.position.set(wx(r.at[0]), H - .012, wz(r.at[1])); lamp.visible = top >= H; lampG.add(lamp);
+      lamp.position.set(wx(r.at[0]), H - .012, wz(r.at[1])); lamp.visible = !opt.exhibit && top >= H; lampG.add(lamp);
       const pl = new THREE.PointLight(0xffd9a8, 0, 7, 1.6); pl.position.set(wx(r.at[0]), H - .25, wz(r.at[1])); lampG.add(pl);
     }
   });
   [...DOORS, ...SLIDES].forEach(d => { const [x0, y0, x1, y1] = d.rect; const s = box(M(x1-x0), .012, M(y1-y0), mat('#d8d0c0', {roughness:.3}), wx((x0+x1)/2), 0, wz((y0+y1)/2)); s.castShadow = false; archFloor.add(s); });
   WALLS.forEach(w => {
-    if (state.demolished.includes(w.id)) return;
+    if (state.demolished.includes(w.id) || hidden.has(w.id)) return;
     const {holes, spans} = solidSpans(w);
     const hgt = w.type === 'low' ? Math.min(1, top) : top;
     if (!holes.length){ addRun(w, 0, hgt); addColliderWall(w); return; }
@@ -1362,7 +1437,7 @@ function exitStudio(){
 function sync(force){
   if (!inited || (!active && !force)) return;
   if (studio){ showPiece(); return; }
-  const a = JSON.stringify([state.walls, state.openings, state.lintels, state.shellRooms, state.bays, state.rooms, state.demolished, opt.cut]), f = JSON.stringify(state.furniture), l = JSON.stringify([state.shellRooms, state.rooms, opt.cut]);
+  const a = JSON.stringify([state.walls, state.openings, state.lintels, state.shellRooms, state.bays, state.rooms, state.demolished, opt.cut, opt.exhibit]), f = JSON.stringify(state.furniture), l = JSON.stringify([state.shellRooms, state.rooms, opt.cut, opt.exhibit]);
   if (force || a !== sigArch){ sigArch = a; buildArch(); }
   if (force || f !== sigFurn){ sigFurn = f; buildFurn(); }
   if (force || l !== sigLabels){ sigLabels = l; buildLabels(); }
@@ -1424,6 +1499,7 @@ function animate(dur, fn){ return new Promise(res => { anim = {t0:performance.no
 const wait = ms => new Promise(r => setTimeout(r, ms));
 function flyTo(B, dur = 900){ fly = {t0:performance.now(), dur, A:curPose(), B}; }
 function flyToRoom(id){
+  leaveExhibit();
   const r = ROOMS.find(r => r.id === id), xs = r.poly.map(p => p[0]), ys = r.poly.map(p => p[1]);
   const t = new THREE.Vector3(wx((Math.min(...xs)+Math.max(...xs))/2), .6, wz((Math.min(...ys)+Math.max(...ys))/2));
   const size = M(Math.max(Math.max(...xs)-Math.min(...xs), Math.max(...ys)-Math.min(...ys)));
@@ -1433,27 +1509,36 @@ function flyToRoom(id){
 }
 
 /* ======================= 进入 / 退出 3D ======================= */
-async function enter(){
-  init(); active = true;
-  renderer.setSize(SW(), SH()); labelRenderer.setSize(SW(), SH()); camera.aspect = SW()/SH(); camera.updateProjectionMatrix();
-  sync(true);
-  opt.mode = 'orbit'; orbit.enabled = false; showLabels(false);
-  const A = planPose(), B = isoFrom(A);
-  grow = 0; furnGrow = 0; applyGrow(); setPose(A);
-  stage.classList.add('animating');
-  startLoop(); renderer.render(scene, camera);
-  stage.classList.add('is3d');                       // 交叉淡入：此刻 3D 画面与 2D 平面完全重合
-  await wait(420);
-  await animate(1700, t => {
-    camTween(A, B, ease(clamp01(t/.85)));
-    grow = ease(clamp01((t - .1)/.55));
-    furnGrow = ease(clamp01((t - .45)/.5));
-    applyGrow();
-  });
+function settleEnter(){
   orbit.enabled = true; showLabels(opt.labels);
   stage.classList.remove('animating');
 }
+async function enter(){
+  init(); active = true; entering = true;
+  try {
+    renderer.setSize(SW(), SH()); labelRenderer.setSize(SW(), SH()); camera.aspect = SW()/SH(); camera.updateProjectionMatrix();
+    sync(true);
+    opt.exhibit = false; camera.fov = FOV; camera.updateProjectionMatrix();
+    opt.mode = 'orbit'; orbit.enabled = false; showLabels(false);
+    const A = planPose(), B = isoFrom(A);
+    grow = 0; furnGrow = 0; applyGrow(); setPose(A);
+    stage.classList.add('animating');
+    startLoop(); renderer.render(scene, camera);
+    stage.classList.add('is3d');                     // 交叉淡入：此刻 3D 画面与 2D 平面完全重合
+    await wait(420);
+    if (opt.exhibit){ settleEnter(); return; }       // 淡入期间已经点了展台
+    await animate(1700, t => {
+      if (opt.exhibit) return;
+      camTween(A, B, ease(clamp01(t/.85)));
+      grow = ease(clamp01((t - .1)/.55));
+      furnGrow = ease(clamp01((t - .45)/.5));
+      applyGrow();
+    });
+    settleEnter();
+  } finally { entering = false; }
+}
 async function exit(){
+  leaveExhibit();
   if (opt.mode === 'walk'){ walkCtl.unlock(); stopTouchWalk(); $('#hint3d').textContent = HINT_ORBIT; $('#walkOverlay').style.display = 'none'; $('#cross').style.display = 'none';
     const dir = new THREE.Vector3(); camera.getWorldDirection(dir); orbit.target.copy(camera.position).addScaledVector(dir, 3).setY(0); opt.mode = 'orbit'; syncModeBtns(); }
   fly = null; orbit.enabled = false; showLabels(false); stage.classList.add('animating');
@@ -1522,7 +1607,11 @@ const HINT_ORBIT = () => COARSE ? tr('单指旋转 · 双指缩放 / 平移 · �
   : tr('左键旋转 · 右键平移 · 滚轮缩放 · 选中家具后拖动可摆放 · 点击门开关', 'Left-drag orbits · right-drag pans · scroll zooms · select furniture to drag it · click doors to open');
 const HINT_TOUCHWALK = () => tr('左下摇杆移动 · 拖动画面转向 · 点门开关', 'Joystick moves · drag to look · tap doors to open');
 const HINT_WALK = () => tr('WASD 移动 · 鼠标转向 · Shift 快走 · E 开关门 · Esc 暂停', 'WASD moves · mouse looks · Shift runs · E opens doors · Esc pauses');
-function syncHint3d(){ $('#hint3d').textContent = opt.mode === 'orbit' ? HINT_ORBIT() : touchWalk ? HINT_TOUCHWALK() : HINT_WALK(); }
+function syncHint3d(){
+  $('#hint3d').textContent = opt.exhibit
+    ? tr('在开口这一角里拖动 · 滚轮缩放', 'Drag within the open corner · scroll to zoom')
+    : opt.mode === 'orbit' ? HINT_ORBIT() : touchWalk ? HINT_TOUCHWALK() : HINT_WALK();
+}
 let touchWalk = false;
 const joy = {x:0, y:0, id:null}, eul = new THREE.Euler(0, 0, 0, 'YXZ');
 function lookBy(dx, dy){
@@ -1554,6 +1643,7 @@ function bindJoystick(){
 }
 function setMode(m){
   if (anim) return;
+  leaveExhibit();
   opt.mode = m; syncModeBtns();
   if (m === 'walk'){
     window.select(null);
@@ -1614,7 +1704,8 @@ addEventListener('keyup', e => keys[e.code] = false);
 
 /* ======================= 工具栏 ======================= */
 function syncModeBtns(){ document.querySelectorAll('#modes3d .btn').forEach(b => b.classList.toggle('on', b.dataset.mode === opt.mode)); }
-function syncCutBtns(){ document.querySelectorAll('[data-cut]').forEach(b => b.classList.toggle('on', +b.dataset.cut === opt.cut)); }
+function syncStageBtn(){ const b = $('#vStage'); if (b) b.classList.toggle('on', !!opt.exhibit); }
+function syncCutBtns(){ document.querySelectorAll('[data-cut]').forEach(b => b.classList.toggle('on', !opt.exhibit && +b.dataset.cut === opt.cut)); }
 function syncWalkTexts(){
   const t = COARSE
     ? [tr('点击开始，从入户门进入', 'Tap to start at the front door'), tr('左下摇杆移动 · 在画面上拖动转向', 'Joystick moves · drag on screen to look'),
@@ -1633,9 +1724,10 @@ function bindUI(){
   $('#walkExit').onclick = () => setMode('orbit');
   bindJoystick();
   syncWalkTexts();
-  $('#vIso').onclick = () => { if (opt.mode === 'walk') setMode('orbit'); else flyTo(isoWhole()); };
-  $('#vTop').onclick = () => { if (opt.mode === 'walk') setMode('orbit'); flyTo(topWhole()); };
-  document.querySelectorAll('[data-cut]').forEach(b => b.onclick = () => { if (opt.mode === 'walk') return; opt.cut = +b.dataset.cut; syncCutBtns(); sync(); });
+  $('#vIso').onclick = () => { const walk = opt.mode === 'walk'; leaveExhibit(); if (walk) setMode('orbit'); else flyTo(isoWhole()); };
+  $('#vTop').onclick = () => { const walk = opt.mode === 'walk'; leaveExhibit(); if (walk) setMode('orbit'); flyTo(topWhole()); };
+  $('#vStage').onclick = () => { if (opt.exhibit){ leaveExhibit(); if (opt.mode === 'orbit') flyTo(isoWhole()); return; } enterExhibit(); };
+  document.querySelectorAll('[data-cut]').forEach(b => b.onclick = () => { if (opt.mode === 'walk') return; leaveExhibit(); opt.cut = +b.dataset.cut; syncCutBtns(); sync(); });
   document.querySelectorAll('#toggles3d .btn').forEach(b => b.onclick = () => {
     const k = b.dataset.t; opt[k] = !opt[k]; b.classList.toggle('on', opt[k]);
     if (k === 'furn'){ furnG.visible = opt.furn; if (!opt.furn && ui.sel?.kind === 'furn') window.select(null); }

@@ -34,6 +34,9 @@ export default class TopChair
 
     update()
     {
+        if(this.world.assetViews && this.world.assetViews.suspendMotion)
+            return
+
         this.model.group.rotation.y = Math.sin(this.time.elapsed * 0.0005) * 0.5
     }
 }

@@ -8,6 +8,8 @@ body {
   width: 100%;
   overflow: hidden;
   touch-action: none;
+  background-color: #070707;
+  transition: background-color 1.2s ease;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -15,6 +17,12 @@ body {
   -moz-osx-font-smoothing: grayscale;
 
   font-family: "Plus Jakarta Sans", sans-serif;
+}
+
+html[data-theme="light"],
+html[data-theme="light"] body,
+html[data-theme="light"] #root {
+  background-color: #f3f1ec;
 }
 
 button {

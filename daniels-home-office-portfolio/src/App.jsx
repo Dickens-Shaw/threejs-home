@@ -1,14 +1,10 @@
 import "./App.scss";
-import React, { useRef, useEffect } from "react";
+import { useEffect } from "react";
 import RoomToggleButton from "./components/Buttons/RoomToggleButton/RoomToggleButton";
+import ViewModeBar from "./components/ViewModeBar/ViewModeBar";
+import AssetList from "./components/AssetList/AssetList";
 import Experience from "./Experience/Experience";
-
 import { useResponsiveStore } from "./stores/useResponsiveStore";
-import LoadingPage from "./pages/LoadingPage/LoadingPage";
-import Menu from "./components/Menu/Menu";
-import Router from "./routes/Router";
-import Overlay from "./components/Overlay/Overlay";
-import Logo from "./components/Logo/Logo";
 
 function App() {
   const { updateDimensions } = useResponsiveStore();
@@ -19,16 +15,13 @@ function App() {
     return () => {
       window.removeEventListener("resize", updateDimensions);
     };
-  }, []);
+  }, [updateDimensions]);
 
   return (
     <>
-      <Menu />
-      <Logo />
-      <LoadingPage />
+      <ViewModeBar />
+      <AssetList />
       <RoomToggleButton />
-      <Overlay />
-      <Router />
       <Experience />
     </>
   );

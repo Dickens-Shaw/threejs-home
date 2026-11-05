@@ -8,6 +8,8 @@ import TopChair from './TopChair.js'
 import ElgatoLight from './ElgatoLight.js'
 import BouncingLogo from './BouncingLogo.js'
 import Screen from './Screen.js'
+import AssetViews from './AssetViews.js'
+import { assembleComputer } from './monitorAssembly.js'
 
 export default class World
 {
@@ -30,6 +32,8 @@ export default class World
                 this.setElgatoLight()
                 this.setBouncingLogo()
                 this.setScreens()
+                this.setComputer()
+                this.setAssetViews()
             }
         })
     }
@@ -81,6 +85,19 @@ export default class World
         )
     }
 
+    setComputer()
+    {
+        this.computer = assembleComputer(this.baked.model.mesh, this.pcScreen.model.mesh)
+
+        if(this.computer)
+            this.scene.add(this.computer)
+    }
+
+    setAssetViews()
+    {
+        this.assetViews = new AssetViews()
+    }
+
     resize()
     {
     }
@@ -101,6 +118,9 @@ export default class World
 
         if(this.bouncingLogo)
             this.bouncingLogo.update()
+
+        if(this.assetViews)
+            this.assetViews.update()
     }
 
     destroy()

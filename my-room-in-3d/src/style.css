@@ -32,3 +32,405 @@ body
 {
     color: inherit;
 }
+
+.credits
+{
+    z-index: 28;
+}
+
+.asset-ui
+{
+    font-family: 'Roboto', sans-serif;
+    font-weight: 300;
+    color: #ffffff;
+}
+
+.asset-toolbar
+{
+    position: fixed;
+    z-index: 30;
+    top: 16px;
+    left: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+body.has-stats .asset-toolbar
+{
+    top: 56px;
+}
+
+.asset-toolbar button
+{
+    height: 34px;
+    padding: 0 14px;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 999px;
+    background: rgba(8, 8, 10, 0.62);
+    color: #ffffff;
+    font: inherit;
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    backdrop-filter: blur(12px);
+}
+
+.asset-toolbar button.is-active
+{
+    background: #f4f1ea;
+    color: #161616;
+    border-color: #f4f1ea;
+}
+
+.asset-list
+{
+    position: fixed;
+    z-index: 30;
+    top: 62px;
+    left: 16px;
+    display: flex;
+    flex-direction: column;
+    width: 320px;
+    max-height: calc(100vh - 88px);
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    gap: 10px;
+    padding: 14px;
+    border-radius: 16px;
+    background: rgba(10, 10, 12, 0.82);
+    backdrop-filter: blur(16px);
+}
+
+.asset-list[hidden],
+.asset-group[hidden],
+.asset-row[hidden],
+.asset-tag[hidden],
+.asset-callout[hidden]
+{
+    display: none;
+}
+
+.asset-list-head
+{
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.asset-list-kicker,
+.asset-list-summary,
+.asset-hint
+{
+    margin: 0;
+}
+
+.asset-list-kicker
+{
+    margin-bottom: 6px;
+    font-size: 16px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+}
+
+.asset-list-summary,
+.asset-hint
+{
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.asset-group h3
+{
+    display: flex;
+    justify-content: space-between;
+    margin: 14px 0 6px;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    opacity: 0.7;
+}
+
+.asset-group h3 span:last-child
+{
+    letter-spacing: 0;
+}
+
+.asset-group ul
+{
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.asset-group li + li
+{
+    margin-top: 4px;
+}
+
+.asset-search
+{
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-radius: 999px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 13px;
+    color-scheme: dark;
+    outline: none;
+}
+
+.asset-search::placeholder
+{
+    color: rgba(255, 255, 255, 0.42);
+}
+
+.asset-list-body
+{
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-height: 0;
+    max-height: calc(100vh - 230px);
+    margin: 0;
+    padding: 0 4px 0 0;
+    overflow: auto;
+    list-style: none;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+}
+
+.asset-list-body::-webkit-scrollbar
+{
+    width: 8px;
+}
+
+.asset-list-body::-webkit-scrollbar-thumb
+{
+    border-radius: 99px;
+    background: rgba(255, 255, 255, 0.22);
+}
+
+.asset-row
+{
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    gap: 4px;
+    align-items: flex-start;
+}
+
+.asset-eye,
+.asset-label
+{
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+}
+
+.asset-eye
+{
+    position: relative;
+    width: 28px;
+    height: 28px;
+    margin-top: 6px;
+    border-radius: 999px;
+}
+
+.asset-eye::before
+{
+    content: '';
+    position: absolute;
+    inset: 8px;
+    border: 2px solid currentColor;
+    border-radius: 999px;
+}
+
+.asset-row.is-hidden
+{
+    opacity: 0.45;
+}
+
+.asset-row.is-hidden .asset-eye::after
+{
+    content: '';
+    position: absolute;
+    top: 13px;
+    right: 6px;
+    left: 6px;
+    height: 2px;
+    background: currentColor;
+    transform: rotate(-35deg);
+}
+
+.asset-label
+{
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    width: 100%;
+    padding: 8px;
+    border: 1px solid transparent;
+    text-align: left;
+}
+
+.asset-index
+{
+    padding-top: 3px;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    opacity: 0.55;
+}
+
+.asset-copy
+{
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.asset-copy strong
+{
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.asset-copy small
+{
+    font-size: 11px;
+    line-height: 1.4;
+    opacity: 0.68;
+}
+
+.asset-row.is-hovered .asset-label,
+.asset-row.is-selected .asset-label
+{
+    border-color: rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.asset-toolbar button:focus-visible,
+.asset-eye:focus-visible,
+.asset-label:focus-visible,
+.asset-tag:focus-visible
+{
+    outline: 1px solid rgba(255, 255, 255, 0.85);
+    outline-offset: 2px;
+}
+
+.asset-tags
+{
+    position: fixed;
+    z-index: 16;
+    inset: 0;
+    pointer-events: none;
+}
+
+.asset-tag
+{
+    position: absolute;
+    left: 0;
+    top: 0;
+    padding: 3px 7px;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-radius: 999px;
+    background: rgba(8, 8, 10, 0.78);
+    box-shadow: inset 2px 0 0 var(--swatch);
+    color: #ffffff;
+    font: 300 11px/1.2 'Roboto', sans-serif;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+    pointer-events: auto;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+}
+
+.asset-tag.is-hot
+{
+    border-color: rgba(255, 255, 255, 0.72);
+}
+
+.asset-tag.is-active
+{
+    background: #f4f1ea;
+    color: #161616;
+    border-color: #f4f1ea;
+}
+
+.asset-callout
+{
+    position: fixed;
+    z-index: 26;
+    left: 50%;
+    bottom: 22px;
+    max-width: min(560px, calc(100vw - 32px));
+    margin: 0;
+    padding: 8px 14px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(8, 8, 10, 0.72);
+    color: #ffffff;
+    font-size: 13px;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    pointer-events: none;
+    transform: translateX(-50%);
+    backdrop-filter: blur(12px);
+}
+
+@media (min-width: 721px)
+{
+    body.has-stats .asset-list
+    {
+        top: 102px;
+        max-height: calc(100vh - 118px);
+    }
+
+    body.has-stats .asset-list-body
+    {
+        max-height: calc(100vh - 270px);
+    }
+}
+
+@media (max-width: 720px)
+{
+    .asset-toolbar
+    {
+        right: 12px;
+        left: 12px;
+        justify-content: flex-start;
+    }
+
+    .asset-list
+    {
+        top: auto;
+        right: 12px;
+        bottom: 16px;
+        left: 12px;
+        width: auto;
+        max-height: 38vh;
+    }
+
+    .asset-list-body
+    {
+        max-height: none;
+    }
+
+    .asset-callout
+    {
+        top: 60px;
+        bottom: auto;
+    }
+
+    body.has-stats .asset-callout
+    {
+        top: 102px;
+    }
+}

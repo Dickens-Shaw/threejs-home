@@ -1,13 +1,30 @@
-import React, { useRef } from "react";
+import { useMemo } from "react";
 import { useGLTF, useVideoTexture } from "@react-three/drei";
 import { convertMaterialsToBasic } from "../../utils/convertToBasic";
+import Part from "../../parts/Part";
+import {
+  DESK_POSITION,
+  DESK_ROTATION,
+  createDeskShadow,
+} from "../../parts/deskShadow";
+
+const IPHONE_POSITION = [23.994, 0.734, -1.338];
+const IPHONE_ROTATION = [0, -1.193, Math.PI / 2];
 
 export default function Model(props) {
   const { nodes, materials } = useGLTF("/models/Light Room/Light_First.glb");
+  const deskShadow = useMemo(
+    () =>
+      createDeskShadow(
+        nodes.Light_First_Baked.geometry,
+        materials.REAL_first_Baked.map
+      ),
+    [nodes.Light_First_Baked.geometry, materials.REAL_first_Baked.map]
+  );
   const newMaterials = convertMaterialsToBasic(materials);
-
-  const desktopScreenRef = useRef();
-  const iPhoneScreenRef = useRef();
+  if (deskShadow.cleanedMap) {
+    newMaterials.REAL_first_Baked.map = deskShadow.cleanedMap;
+  }
 
   const videoTexture = useVideoTexture("/videos/designwork.mp4", {
     crossOrigin: "anonymous",
@@ -19,36 +36,25 @@ export default function Model(props) {
 
   return (
     <group {...props} dispose={null}>
-      <mesh
-        ref={iPhoneScreenRef}
-        geometry={nodes.iPhone_Screen.geometry}
-        position={[23.994, 0.734, -1.338]}
-        rotation={[0, -1.193, Math.PI / 2]}
+      <Part
+        id="light-iphone-screen"
+        position={IPHONE_POSITION}
+        rotation={IPHONE_ROTATION}
       >
-        <meshBasicMaterial
-          map={videoTexture}
-          color="#f6f6f6"
-          toneMapped={false}
+        <mesh geometry={nodes.iPhone_Screen.geometry}>
+          <meshBasicMaterial
+            map={videoTexture}
+            color="#f6f6f6"
+            toneMapped={false}
+          />
+        </mesh>
+      </Part>
+      <Part id="light-first" position={DESK_POSITION} rotation={DESK_ROTATION}>
+        <mesh
+          geometry={nodes.Light_First_Baked.geometry}
+          material={newMaterials.REAL_first_Baked}
         />
-      </mesh>
-      <mesh
-        ref={desktopScreenRef}
-        geometry={nodes.Desktop_Screen.geometry}
-        position={[24.377, 0.968, -1.548]}
-        rotation={[-Math.PI / 2, 0, 0]}
-      >
-        <meshBasicMaterial
-          map={videoTexture}
-          color="#f6f6f6"
-          toneMapped={false}
-        />
-      </mesh>
-      <mesh
-        geometry={nodes.Light_First_Baked.geometry}
-        material={newMaterials.REAL_first_Baked}
-        position={[23.66, 1.452, -1.692]}
-        rotation={[-Math.PI / 2, 0, 0]}
-      />
+      </Part>
     </group>
   );
 }
