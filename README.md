@@ -1,10 +1,11 @@
 # 户型与装修设计
 
-本仓库放了两套可以在浏览器里打开的户型工具，来源不同，互不替代。
+本仓库放了可以在浏览器里打开的户型工具，来源不同，互不替代。
 
 | 目录 | 是什么 | 来源 |
 | --- | --- | --- |
 | [`floorplan-3d/`](floorplan-3d/) | 可继续修改的户型编辑器：SVG 平面、Three.js 三维、房间装修、家具预览 | 基于 [wy51ai/floorplan-3d](https://github.com/wy51ai/floorplan-3d) |
+| [`esports-room/`](esports-room/) | 电竞屋搭建：三间预设房间和桌面设备，平面与三维同一套编辑器 | 从 `floorplan-3d` 分出来的独立页面 |
 | [`house-plan-designer/`](house-plan-designer/) | 由户型图生成的单文件装修设计器，以及这次生成用的 spec、脚本和验收记录 | 基于本仓库的 [house-plan-designer skill](.cursor/skills/house-plan-designer/SKILL.md) |
 
 `demo/` 是单独的智能客厅演示，不属于上面两套。
@@ -45,6 +46,17 @@ python3 -m http.server 8000
 | `js/furn-prompt.js` | 自定义家具零件的提示词 |
 
 改交互和模型，改 `js/`。户型可以在界面里画，也可以按 `pack-prompt.js` 的格式导入 JSON。
+
+## esports-room
+
+电竞屋单独放在 [`esports-room/`](esports-room/)，不进住宅户型编辑器。三间预设是紧凑单人、标准电竞房、客厅电竞角。显示器、音箱、麦克风和灯带按桌面高度来画，叠在桌子上。存档键是 `esports-plans-v1`，和户型编辑器分开。模型是程序画的。
+
+```bash
+cd esports-room
+python3 -m http.server 8000
+```
+
+打开 `http://localhost:8000/`。从仓库根目录起服务时，地址是 `http://localhost:8000/esports-room/`。
 
 ## house-plan-designer
 
@@ -88,5 +100,5 @@ skill 的 Python 依赖：`numpy`、`pillow`、`opencv-python`、`pymupdf`、`ez
 
 两套代码分别遵守各自上游的 MIT 许可。再分发时保留对应的版权与许可声明。
 
-- `floorplan-3d/`：Copyright (c) 2026 wuyi。[floorplan-3d/LICENSE](floorplan-3d/LICENSE)。上游仓库 [wy51ai/floorplan-3d](https://github.com/wy51ai/floorplan-3d)。
+- `floorplan-3d/` 与从中分出的 `esports-room/`：Copyright (c) 2026 wuyi。[floorplan-3d/LICENSE](floorplan-3d/LICENSE)、[esports-room/LICENSE](esports-room/LICENSE)。上游仓库 [wy51ai/floorplan-3d](https://github.com/wy51ai/floorplan-3d)。
 - `.cursor/skills/house-plan-designer/` 以及由它生成的 `house-plan-designer/check.html`、`floorplan-3d/三室一厅-装修设计器.html`：Copyright (c) 2026 ZWD11。[.cursor/skills/house-plan-designer/LICENSE](.cursor/skills/house-plan-designer/LICENSE)。上游仓库 [ZWD11/house-plan-designer](https://github.com/ZWD11/house-plan-designer)。
