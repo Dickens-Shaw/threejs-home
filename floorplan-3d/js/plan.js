@@ -919,21 +919,27 @@ function loadLibrary(){
   } else if (shipped && stockBuiltin(lib)){
     lib = shipped;
   }
-  const bi = lib.plans.findIndex(p => p.id === 'beike-3br');
-  if (bi < 0){
-    const plan = beikePlan();
-    lib.plans.push(plan);
-    lib.activeId = plan.id;
-  } else if ((lib.plans[bi].rev || 0) < 3){
-    lib.plans[bi] = beikePlan();
+  dropDefaultBeike(lib);
+  if (!lib.plans.length){
+    const seed = seedPlan();
+    lib.plans = [seed];
+    lib.activeId = seed.id;
   }
   if (!Array.isArray(lib.rooms)) lib.rooms = lib.plans.map(p => roomFromPlan(p));
+  lib.rooms = lib.rooms.filter(r => !defaultBeikeRoom(r));
+  if (!lib.plans.some(p => p.id === lib.activeId)) lib.activeId = lib.plans[0].id;
   lib.plans.forEach(normalizePlan);
-  lib.rooms.forEach(room => {
-    normalizePlan(room);
-    if (room.id === 'pmw2wiisq20' && room.name === '我家') room.name = '三室一厅一卫';
-  });
+  lib.rooms.forEach(normalizePlan);
   return lib;
+}
+function defaultBeikeRoom(room){
+  if (!room) return false;
+  if (room.id === 'pmw2wiisq20') return true;
+  return room.sourceId === 'beike-3br' && !(room.bays || []).length && (room.furniture || []).length < 20;
+}
+function dropDefaultBeike(lib){
+  lib.plans = (lib.plans || []).filter(p => p.id !== 'beike-3br');
+  if (Array.isArray(lib.rooms)) lib.rooms = lib.rooms.filter(r => !defaultBeikeRoom(r));
 }
 function roomFromPlan(plan){
   const room = JSON.parse(JSON.stringify(plan));
