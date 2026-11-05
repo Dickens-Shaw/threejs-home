@@ -883,6 +883,22 @@ function beikePlan(){
   fitBounds(plan);
   return plan;
 }
+function shippedDefault(){
+  return typeof DEFAULT_LIB === 'object' && DEFAULT_LIB && Array.isArray(DEFAULT_LIB.plans) && DEFAULT_LIB.plans.length
+    ? JSON.parse(JSON.stringify(DEFAULT_LIB)) : null;
+}
+// 舊的內建庫只有 seed + 未改過的 beike（木地板、沒有飄窗）。這種庫換成帶過來的戶型，已有的自訂戶型保留。
+function stockBuiltin(lib){
+  const plans = lib && lib.plans || [];
+  const rooms = lib && lib.rooms || [];
+  if (!plans.length || plans.some(p => p.id !== 'seed' && p.id !== 'beike-3br')) return false;
+  if (rooms.some(r => r.id === 'pmw2wiisq20')) return false;
+  if (plans.some(p => (p.bays || []).length) || rooms.some(r => (r.bays || []).length)) return false;
+  const beike = plans.find(p => p.id === 'beike-3br');
+  if (!beike || (beike.furniture || []).length >= 20) return false;
+  if (rooms.some(r => r.sourceId === 'beike-3br' && (r.furniture || []).length >= 20)) return false;
+  return true;
+}
 function loadLibrary(){
   let lib = null;
   try {
@@ -892,14 +908,16 @@ function loadLibrary(){
       lib = raw;
     }
   } catch(e) {}
+  const shipped = shippedDefault();
   if (!lib){
-    if (typeof DEFAULT_LIB === 'object' && DEFAULT_LIB && Array.isArray(DEFAULT_LIB.plans) && DEFAULT_LIB.plans.length){
-      lib = JSON.parse(JSON.stringify(DEFAULT_LIB));
-    } else {
+    if (shipped) lib = shipped;
+    else {
       const seed = seedPlan();
       mergeLegacy(seed);
       lib = {activeId:seed.id, plans:[seed]};
     }
+  } else if (shipped && stockBuiltin(lib)){
+    lib = shipped;
   }
   const bi = lib.plans.findIndex(p => p.id === 'beike-3br');
   if (bi < 0){
