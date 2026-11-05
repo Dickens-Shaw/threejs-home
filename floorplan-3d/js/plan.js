@@ -893,9 +893,13 @@ function loadLibrary(){
     }
   } catch(e) {}
   if (!lib){
-    const seed = seedPlan();
-    mergeLegacy(seed);
-    lib = {activeId:seed.id, plans:[seed]};
+    if (typeof DEFAULT_LIB === 'object' && DEFAULT_LIB && Array.isArray(DEFAULT_LIB.plans) && DEFAULT_LIB.plans.length){
+      lib = JSON.parse(JSON.stringify(DEFAULT_LIB));
+    } else {
+      const seed = seedPlan();
+      mergeLegacy(seed);
+      lib = {activeId:seed.id, plans:[seed]};
+    }
   }
   const bi = lib.plans.findIndex(p => p.id === 'beike-3br');
   if (bi < 0){
@@ -906,7 +910,11 @@ function loadLibrary(){
     lib.plans[bi] = beikePlan();
   }
   if (!Array.isArray(lib.rooms)) lib.rooms = lib.plans.map(p => roomFromPlan(p));
-  lib.rooms.forEach(normalizePlan);
+  lib.plans.forEach(normalizePlan);
+  lib.rooms.forEach(room => {
+    normalizePlan(room);
+    if (room.id === 'pmw2wiisq20' && room.name === '我家') room.name = '三室一厅一卫';
+  });
   return lib;
 }
 function roomFromPlan(plan){
@@ -1495,7 +1503,7 @@ const TAP = COARSE ? 9 : 4;                    // 手指按下后移动超过该
 const narrow = () => matchMedia('(max-width:1100px)').matches;
 const $ = s => document.querySelector(s);
 const svg = $('#plan');
-const LIB_KEY = 'huxing-plans-v2';
+const LIB_KEY = 'huxing-plans-v3';
 
 let library, editing = false, sessionFull = null, sessionDigest = null;
 let WALLS, WINS, DOORS, SLIDES, ROOMS, BOUNDS, state;

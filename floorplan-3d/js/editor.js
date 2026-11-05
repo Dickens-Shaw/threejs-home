@@ -1687,6 +1687,10 @@ function absorbCustomNote(listed, furn){
   return n ? tr(`，自定义家具 ${n} 件`, `, ${n} custom pieces`) : '';
 }
 function mountFurnExtra(){
+  try {
+    if (localStorage.getItem(FURN_EXTRA_KEY) == null && typeof DEFAULT_FURN_EXTRA !== 'undefined' && Array.isArray(DEFAULT_FURN_EXTRA))
+      localStorage.setItem(FURN_EXTRA_KEY, JSON.stringify(DEFAULT_FURN_EXTRA));
+  } catch(e) {}
   furnExtraRows().forEach(r => {
     if (!r || stockFurn(r.type, r.name, r.w, r.d)) return;
     const parts = parseCustomParts(r.parts);
