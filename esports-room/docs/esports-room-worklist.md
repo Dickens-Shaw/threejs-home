@@ -42,7 +42,7 @@
 
 ### 提示词工具
 
-- 已安装 `get-prompt-from-image`，副本在 `~/.agents/skills/get-prompt-from-image`。新开的对话才能读到。
+- `get-prompt-from-image` 在本仓库 [`.cursor/skills/get-prompt-from-image`](../../.cursor/skills/get-prompt-from-image/SKILL.md)。新开的对话才能读到。
 - 它默认会收成一段生图提示词。下面这段覆盖那个格式，改成逐件规格。
 
 ## 待做
