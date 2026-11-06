@@ -1,21 +1,5 @@
 export const PARTS = [
   {
-    id: "dark-mac-screen",
-    theme: "dark",
-    label: "Mac 屏幕",
-    kind: "屏幕",
-    file: "Dark_First.glb",
-    chunk: "first",
-  },
-  {
-    id: "dark-computer-screen",
-    theme: "dark",
-    label: "电脑屏幕",
-    kind: "屏幕",
-    file: "Dark_First.glb",
-    chunk: "first",
-  },
-  {
     id: "dark-first",
     theme: "dark",
     label: "第一块地面",
@@ -70,7 +54,7 @@ export const PARTS = [
   {
     id: "dark-chair",
     theme: "dark",
-    label: "椅背",
+    label: "椅子",
     kind: "家具",
     file: "Dark_Fourth.glb",
     chunk: "fourth",
@@ -136,6 +120,11 @@ export const CHUNKS = [
   { id: "fourth", title: "第四块" },
   { id: "other", title: "其他" },
 ];
+
+export function ensurePart(entry) {
+  if (PARTS.some((part) => part.id === entry.id)) return;
+  PARTS.push(entry);
+}
 
 export function partsByTheme(theme) {
   return PARTS.filter((part) => part.theme === theme);

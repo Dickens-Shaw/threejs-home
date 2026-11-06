@@ -2,7 +2,7 @@
 
 中文 | [English](README.en.md)
 
-纯前端的户型装修设计工具：在 2D 平面图上摆放家具、拆改墙体、测量尺寸，一键切换到 Three.js 3D 场景，可以鸟瞰，也可以第一人称漫游。整个应用就是一个 `index.html`，无需构建，打开即用。
+纯前端的户型装修设计工具：在 2D 平面图上摆放家具、拆改墙体、测量尺寸，一键切换到 Three.js 3D 场景，可以鸟瞰，也可以第一人称漫游。源码是 `index.html` 和 `js/`。开发时用 Vite，保存后浏览器自动刷新。
 
 ## 功能
 
@@ -30,19 +30,14 @@
 
 ## 快速开始
 
-```bash
-git clone <仓库地址>
-cd <仓库目录>
-```
-
-然后直接用浏览器打开 `index.html`。也可以起一个本地静态服务器：
+在本目录执行：
 
 ```bash
-python3 -m http.server 8000
-# 访问 http://localhost:8000
+npm install
+npm run dev
 ```
 
-> Three.js 通过 jsDelivr CDN 加载，首次打开 3D 场景需要联网。
+打开终端里给出的本地地址，默认是 `http://localhost:5183`。改 `index.html` 或 `js/` 后页面会自动刷新。Three.js 用依赖里的 r160，和页面上原来的版本一致。
 
 ## 快捷键
 

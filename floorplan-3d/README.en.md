@@ -2,7 +2,7 @@
 
 [中文](README.md) | English
 
-A pure front-end tool for interior design on a floor plan: place furniture, remove or modify walls, and take measurements on a 2D plan, then switch to a Three.js 3D scene with one click — view it from above or walk through it in first person. The whole app is a single `index.html`: no build step, just open it.
+A pure front-end tool for interior design on a floor plan: place furniture, remove or modify walls, and take measurements on a 2D plan, then switch to a Three.js 3D scene with one click — view it from above or walk through it in first person. The source is `index.html` plus `js/`. Vite serves it in development and reloads the browser when a file is saved.
 
 ## Features
 
@@ -30,19 +30,14 @@ A pure front-end tool for interior design on a floor plan: place furniture, remo
 
 ## Quick Start
 
-```bash
-git clone <repository-url>
-cd <repository-directory>
-```
-
-Then simply open `index.html` in your browser. Alternatively, start a local static server:
+From this directory:
 
 ```bash
-python3 -m http.server 8000
-# Visit http://localhost:8000
+npm install
+npm run dev
 ```
 
-> Three.js is loaded from the jsDelivr CDN, so an internet connection is required the first time you open the 3D scene.
+Open the local address Vite prints, `http://localhost:5183` by default. The page reloads when `index.html` or anything in `js/` is saved. Three.js r160 comes from the installed dependency, the same version the page used before.
 
 ## Keyboard Shortcuts
 

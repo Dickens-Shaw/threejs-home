@@ -411,6 +411,9 @@ function bindRoomPanel(){
   $('#back').onclick = () => select(null);
 }
 
+const SCREEN_FURN = new Set(['monitor', 'ultrawide', 'dualmon', 'tv']);
+function isScreenFurn(f){ return !!(f && SCREEN_FURN.has(f.type)); }
+function screenSrcField(src){ return src && !String(src).startsWith('idb:') ? src : ''; }
 function furnPanel(f){
   const preview = String(f.id).startsWith('studio:');
   const room = !preview && f.roomId && (state.shellRooms || []).find(r => r.id === f.roomId);
@@ -424,6 +427,13 @@ function furnPanel(f){
       <label>${tr('中心','Center')} Y (mm)<input type="number" id="fY" value="${Math.round(f.cy)}" step="10"></label>`}
       <label>${tr('旋转','Rotation')} (°)<input type="number" id="fR" value="${f.rot}" step="15"></label>
       <label>${tr('颜色','Color')}<input type="color" id="fC" value="${f.color}"></label>
+      ${isScreenFurn(f) ? `<label class="full">${tr('画面','Picture')}<input id="fSrc" autocomplete="off" placeholder="${tr('图片、动图或视频的链接', 'Link to an image, GIF, or video')}" value="${esc(screenSrcField(f.src))}"></label>
+      <div class="actions" style="margin-top:0;grid-column:1/-1">
+        <button class="btn" type="button" id="fSrcUp">${tr('上传本地文件','Upload')}</button>
+        <button class="btn" type="button" id="fSrcClr">${tr('清除画面','Clear')}</button>
+        <input id="fSrcFile" type="file" accept="image/*,video/*,.gif,.webp,.avif,.apng,.mov,.mkv,.m4v" hidden>
+      </div>
+      <p class="muted" id="fSrcNote" style="margin:6px 0 0;grid-column:1/-1">${tr('支持图片、动图、视频和对应的在线链接，也可以填 YouTube 或哔哩哔哩的视频页。本地文件保存在这台浏览器里。', 'Images, GIFs, videos, and links to them, including a YouTube or Bilibili video page. Uploaded files stay in this browser.')}</p>` : ''}
     </div>
     <div class="muted" style="margin-top:8px">${tr('占地面积','Footprint')} ${fmt(f.w*f.d/1e6)} m²</div>
     ${roomLine}
@@ -451,6 +461,23 @@ function bindFurnPanel(f){
   if (!preview){ num('#fX', (g,v) => { g.cx = v; markFurnitureRoom(g); }); num('#fY', (g,v) => { g.cy = v; markFurnitureRoom(g); }); }
   num('#fR', (g,v) => g.rot = norm(v));
   $('#fC').onchange = e => upd(g => g.color = e.target.value);
+  if (isScreenFurn(f)){
+    const setSrc = v => upd(g => { if (v) g.src = v; else delete g.src; });
+    $('#fSrc').onchange = e => setSrc(e.target.value.trim());
+    $('#fSrcUp').onclick = () => $('#fSrcFile').click();
+    $('#fSrcFile').onchange = async e => {
+      const file = e.target.files && e.target.files[0];
+      e.target.value = '';
+      if (!file) return;
+      try { setSrc(await window.screenMedia.put(file)); }
+      catch(err){ toast(tr('这个文件存不下来', 'Could not store this file')); }
+    };
+    $('#fSrcClr').onclick = () => setSrc('');
+    if (f.src && String(f.src).startsWith('idb:') && window.screenMedia) window.screenMedia.note(f.src).then(text => {
+      const note = $('#fSrcNote');
+      if (note && text) note.textContent = text;
+    });
+  }
   if (preview){
     $('#aRot').onclick = () => upd(g => g.rot = norm(g.rot + 90));
     $('#aDel').onclick = () => { studioFurn = null; renderPanel(); window.View3D?.sync(); };

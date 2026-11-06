@@ -5,6 +5,7 @@ import Experience from './Experience.js'
 
 const CATEGORIES = [
     { id: 'shell', title: '基准', color: '#c8c2b8' },
+    { id: 'furniture', title: '家具', color: '#e4c4a8' },
     { id: 'screen', title: '屏幕', color: '#9ec1ff' },
     { id: 'light', title: '灯光', color: '#ffb15c' },
     { id: 'console', title: '控制台', color: '#d7b0ff' },
@@ -78,32 +79,42 @@ export default class AssetViews
             anchor: true
         })
 
-        if(world.computer)
-        {
-            this.addAsset({
-                id: 'computer',
-                name: '电脑',
-                short: '电脑',
-                kind: '家具',
-                file: '显示器 + 屏幕',
-                category: 'screen',
-                object: world.computer
-            })
-        }
-        else
-        {
-            this.addAsset({
-                id: 'pc-screen',
-                name: '电脑屏幕',
-                short: '电脑屏幕',
-                kind: '屏幕',
-                file: 'pcScreenModel.glb',
-                category: 'screen',
-                object: world.pcScreen.model.mesh
-            })
-        }
+        const assembly = world.assembly || {}
 
-        this.addAsset({
+        this.addGrouped(assembly.shelf, {
+            id: 'shelf',
+            name: '书架',
+            short: '书架',
+            kind: '家具',
+            file: 'roomModel.glb',
+            category: 'furniture'
+        })
+
+        this.addGrouped(assembly.computer, {
+            id: 'computer',
+            name: '电脑',
+            short: '电脑',
+            kind: '家具',
+            file: '显示器 + 屏幕',
+            category: 'screen'
+        }, {
+            id: 'pc-screen',
+            name: '电脑屏幕',
+            short: '电脑屏幕',
+            kind: '屏幕',
+            file: 'pcScreenModel.glb',
+            category: 'screen',
+            object: world.pcScreen.model.mesh
+        })
+
+        this.addGrouped(assembly.mac, {
+            id: 'mac',
+            name: 'Mac',
+            short: 'Mac',
+            kind: '家具',
+            file: '机身 + macScreenModel.glb',
+            category: 'screen'
+        }, {
             id: 'mac-screen',
             name: 'Mac 屏幕',
             short: 'Mac 屏幕',
@@ -113,7 +124,103 @@ export default class AssetViews
             object: world.macScreen.model.mesh
         })
 
-        this.addAsset({
+        this.addGrouped(assembly.desk, {
+            id: 'desk',
+            name: '电脑桌',
+            short: '电脑桌',
+            kind: '家具',
+            file: 'roomModel.glb',
+            category: 'furniture'
+        })
+
+        this.addGrouped(assembly.keyboard, {
+            id: 'keyboard',
+            name: '键盘',
+            short: '键盘',
+            kind: '家具',
+            file: 'roomModel.glb',
+            category: 'furniture'
+        })
+
+        this.addGrouped(assembly.sofa, {
+            id: 'sofa',
+            name: '沙发',
+            short: '沙发',
+            kind: '家具',
+            file: 'roomModel.glb',
+            category: 'furniture'
+        })
+
+        this.addGrouped(assembly.table, {
+            id: 'table',
+            name: '茶几',
+            short: '茶几',
+            kind: '家具',
+            file: 'roomModel.glb',
+            category: 'furniture'
+        })
+
+        this.addGrouped(assembly.tv, {
+            id: 'tv',
+            name: '电视',
+            short: '电视',
+            kind: '家具',
+            file: '屏幕 + 弹跳标志',
+            category: 'screen'
+        })
+
+        this.addGrouped(assembly.stand, {
+            id: 'stand',
+            name: '电视柜',
+            short: '电视柜',
+            kind: '家具',
+            file: 'roomModel.glb',
+            category: 'furniture'
+        })
+
+        this.addGrouped(assembly.headphones, {
+            id: 'headphones',
+            name: '耳机',
+            short: '耳机',
+            kind: '装饰',
+            file: 'roomModel.glb',
+            category: 'decor'
+        })
+
+        this.addGrouped(assembly.controller, {
+            id: 'controller',
+            name: '手柄',
+            short: '手柄',
+            kind: '装饰',
+            file: 'roomModel.glb',
+            category: 'decor'
+        })
+
+        this.addGrouped(assembly.chair, {
+            id: 'chair',
+            name: '转椅',
+            short: '转椅',
+            kind: '家具',
+            file: '椅座 + 底座',
+            category: 'furniture'
+        }, {
+            id: 'chair',
+            name: '转椅',
+            short: '转椅',
+            kind: '家具',
+            file: 'topChairModel.glb',
+            category: 'furniture',
+            object: world.topChair.model.group
+        })
+
+        this.addGrouped(assembly.elgato, {
+            id: 'elgato',
+            name: 'Elgato 补光灯',
+            short: '补光灯',
+            kind: '灯光',
+            file: '灯头 + elgatoLightModel.glb',
+            category: 'light'
+        }, {
             id: 'elgato',
             name: 'Elgato 补光灯',
             short: '补光灯',
@@ -123,53 +230,128 @@ export default class AssetViews
             object: world.elgatoLight.model.mesh
         })
 
-        world.googleLeds.model.items.forEach((item) =>
+        this.addGrouped(assembly.google, {
+            id: 'google',
+            name: 'Google Home',
+            short: 'Google Home',
+            kind: '灯光',
+            file: '机身 + googleHomeLedsModel.glb',
+            category: 'light'
+        })
+
+        if(!assembly.google)
         {
-            const meshName = item.mesh.name || `led${item.index}`
-            const number = String(parseInt(meshName.replace(/\D/g, ''), 10) + 1).padStart(2, '0')
+            world.googleLeds.model.items.forEach((item) =>
+            {
+                const meshName = item.mesh.name || `led${item.index}`
+                const number = String(parseInt(meshName.replace(/\D/g, ''), 10) + 1).padStart(2, '0')
 
-            this.addAsset({
-                id: `led-${meshName}`,
-                name: `Google Home 灯珠 ${number}`,
-                short: `灯珠 ${number}`,
-                kind: '灯光',
-                file: 'googleHomeLedsModel.glb',
-                category: 'light',
-                object: item.mesh,
-                cluster: 'leds',
-                compactTag: true
+                this.addAsset({
+                    id: `led-${meshName}`,
+                    name: `Google Home 灯珠 ${number}`,
+                    short: `灯珠 ${number}`,
+                    kind: '灯光',
+                    file: 'googleHomeLedsModel.glb',
+                    category: 'light',
+                    object: item.mesh,
+                    cluster: 'leds',
+                    compactTag: true
+                })
             })
+        }
+
+        this.addGrouped(assembly.loupedeck, {
+            id: 'loupedeck',
+            name: 'Loupedeck',
+            short: 'Loupedeck',
+            kind: '控制台',
+            file: '底座 + loupedeckButtonsModel.glb',
+            category: 'console'
         })
 
-        world.loupedeckButtons.model.items.forEach((item) =>
+        if(!assembly.loupedeck)
         {
-            const meshName = item.mesh.name || `screen${item.index}`
-            const number = String(parseInt(meshName.replace(/\D/g, ''), 10)).padStart(2, '0')
+            world.loupedeckButtons.model.items.forEach((item) =>
+            {
+                const meshName = item.mesh.name || `screen${item.index}`
+                const number = String(parseInt(meshName.replace(/\D/g, ''), 10)).padStart(2, '0')
 
-            this.addAsset({
-                id: `button-${meshName}`,
-                name: `Loupedeck 按键 ${number}`,
-                short: `按键 ${number}`,
-                kind: '按键',
-                file: 'loupedeckButtonsModel.glb',
-                category: 'console',
-                object: item.mesh,
-                cluster: 'buttons',
-                compactTag: true
+                this.addAsset({
+                    id: `button-${meshName}`,
+                    name: `Loupedeck 按键 ${number}`,
+                    short: `按键 ${number}`,
+                    kind: '按键',
+                    file: 'loupedeckButtonsModel.glb',
+                    category: 'console',
+                    object: item.mesh,
+                    cluster: 'buttons',
+                    compactTag: true
+                })
             })
+        }
+
+        this.addGrouped(assembly.books, {
+            id: 'books',
+            name: '书',
+            short: '书',
+            kind: '装饰',
+            file: 'roomModel.glb',
+            category: 'decor'
         })
 
-        this.addAsset({
-            id: 'chair',
-            name: '转椅',
-            short: '转椅',
-            kind: '家具',
-            file: 'topChairModel.glb',
-            category: 'decor',
-            object: world.topChair.model.group
+        this.addGrouped(assembly.among, {
+            id: 'among',
+            name: 'Among Us 小人',
+            short: '小人',
+            kind: '装饰',
+            file: 'roomModel.glb',
+            category: 'decor'
         })
 
-        this.addAsset({
+        this.addGrouped(assembly.guitar, {
+            id: 'guitar',
+            name: '吉他',
+            short: '吉他',
+            kind: '装饰',
+            file: 'roomModel.glb',
+            category: 'decor'
+        })
+
+        this.addGrouped(assembly.mic, {
+            id: 'mic',
+            name: '麦克风架',
+            short: '麦克风架',
+            kind: '装饰',
+            file: 'roomModel.glb',
+            category: 'decor'
+        })
+
+        this.addGrouped(assembly.camera, {
+            id: 'camera',
+            name: '相机',
+            short: '相机',
+            kind: '装饰',
+            file: 'roomModel.glb',
+            category: 'decor'
+        })
+
+        this.addGrouped(assembly.plant, {
+            id: 'plant',
+            name: '龟背竹',
+            short: '龟背竹',
+            kind: '装饰',
+            file: 'roomModel.glb',
+            category: 'decor'
+        })
+
+        this.addGrouped(assembly.mug, {
+            id: 'mug',
+            name: '杯子',
+            short: '杯子',
+            kind: '装饰',
+            file: '杯子 + coffeeSteamModel.glb',
+            category: 'decor'
+        }, {
             id: 'steam',
             name: '咖啡热气',
             short: '咖啡热气',
@@ -179,14 +361,13 @@ export default class AssetViews
             object: world.coffeeSteam.model.mesh
         })
 
-        this.addAsset({
-            id: 'logo',
-            name: 'Journey 标志',
-            short: 'Journey 标志',
+        this.addGrouped(assembly.rubik, {
+            id: 'rubik',
+            name: '魔方',
+            short: '魔方',
             kind: '装饰',
-            file: 'threejsJourneyLogo.png',
-            category: 'decor',
-            object: world.bouncingLogo.model.group
+            file: 'roomModel.glb',
+            category: 'decor'
         })
     }
 
@@ -207,6 +388,18 @@ export default class AssetViews
         })
 
         return Math.round(triangles)
+    }
+
+    addGrouped(group, spec, fallback)
+    {
+        if(group)
+        {
+            this.addAsset({ ...spec, object: group })
+            return
+        }
+
+        if(fallback)
+            this.addAsset(fallback)
     }
 
     addAsset(spec)

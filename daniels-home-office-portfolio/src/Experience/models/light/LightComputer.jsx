@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import { useGLTF, useVideoTexture } from "@react-three/drei";
+import { useGLTF } from "@react-three/drei";
+import { useRoomVideo } from "../../utils/useRoomVideo";
 import { convertMaterialsToBasic } from "../../utils/convertToBasic";
 import Part from "../../parts/Part";
 import {
@@ -38,13 +39,7 @@ export default function LightComputer(props) {
     () => convertMaterialsToBasic(baked.materials).actual_second_bro_Baked,
     [baked.materials]
   );
-  const videoTexture = useVideoTexture("/videos/designwork.mp4", {
-    crossOrigin: "anonymous",
-    muted: true,
-    loop: true,
-    playsInline: true,
-    start: true,
-  });
+  const videoTexture = useRoomVideo("/videos/designwork.mp4");
 
   return (
     <group {...props} dispose={null}>

@@ -10,7 +10,6 @@ import Part from "../../parts/Part";
 const VACUUM_POSITION = [1.371, 0 - 0.02, -0.354];
 const VACUUM_ROTATION = [Math.PI, 0, Math.PI];
 const VACUUM_SCALE = 1.015;
-const THIRD_POSITION = [-0.819, 0.746 - 0.02, 1.115];
 const THIRD_ROTATION = [Math.PI / 2, 0, 0.47];
 const FAN_POSITION = [0.247, 0.951 - 0.02, 0.524];
 
@@ -31,12 +30,6 @@ export default function Model(props) {
       >
         <mesh
           geometry={nodes.Floor_Vaccum_Third_Baked.geometry}
-          material={newMaterials.Third_Real_Real_Texture_Set_Baked}
-        />
-      </Part>
-      <Part id="dark-third" position={THIRD_POSITION} rotation={THIRD_ROTATION}>
-        <mesh
-          geometry={nodes.Third_Baked.geometry}
           material={newMaterials.Third_Real_Real_Texture_Set_Baked}
         />
       </Part>

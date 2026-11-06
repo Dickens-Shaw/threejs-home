@@ -1,15 +1,12 @@
 import { Suspense, useRef } from "react";
 import * as THREE from "three";
 
-import DarkRoomFirst from "./models/dark/Dark_First";
-import DarkRoomSecond from "./models/dark/Dark_Second";
 import DarkRoomThird from "./models/dark/Dark_Third";
-import DarkRoomFourth from "./models/dark/Dark_Fourth";
+import DarkBaked from "./models/dark/DarkBaked";
 import LightRoomFirst from "./models/light/Light_First";
-import LightRoomSecond from "./models/light/Light_Second";
 import LightComputer from "./models/light/LightComputer";
-import LightRoomThird from "./models/light/Light_Third";
 import LightRoomFourth from "./models/light/Light_Fourth";
+import LightBaked from "./models/light/LightBaked";
 
 import { useFrame } from "@react-three/fiber";
 import ExplodeRig from "./parts/ExplodeRig";
@@ -54,18 +51,15 @@ const Scene = ({ pointerRef }) => {
   return (
     <Suspense>
       <group ref={darkGroupRef}>
-        <DarkRoomFirst />
-        <DarkRoomSecond />
         <DarkRoomThird />
-        <DarkRoomFourth />
+        <DarkBaked />
       </group>
 
       <group ref={lightGroupRef} position={LIGHT_ROOM_OFFSET}>
         <LightRoomFirst position={lightRoomInverse} />
-        <LightRoomSecond position={lightRoomInverse} />
         <LightComputer position={lightRoomInverse} />
-        <LightRoomThird position={lightRoomInverse} />
         <LightRoomFourth position={lightRoomInverse} />
+        <LightBaked position={lightRoomInverse} />
       </group>
       <ExplodeRig />
     </Suspense>

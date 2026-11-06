@@ -4,7 +4,7 @@ const LANGS = ['zh', 'zht', 'en'];             // 简体 / 繁體（台湾用字
 let LANG = (() => { try { const l = localStorage.getItem(LANG_KEY); return LANGS.includes(l) ? l : 'zh'; } catch(e) { return 'zh'; } })();
 // 简 → 繁：先按词替换一字多义的字，再逐字查表（表由 OpenCC s2tw 按本页用到的字生成）
 const S2T_PHRASES = [['布置','佈置'],['布局','佈局'],['台面','檯面'],['复制','複製'],['全部折叠','全部折疊'],['全部展开','全部展開'],['搜索家具','搜尋家具'],['没有匹配的家具','沒有相符的家具'],['自定义','自訂'],['电竞屋','電競屋'],['电竞','電競']];
-const S2T = new Map(('与與两兩个個为為书書于於仅僅从從价價会會传傳体體余餘侧側倾傾储儲儿兒关關内內写寫净淨准準击擊则則刚剛删刪制製办辦动動势勢区區单單占佔卧臥卫衛厅廳历歷压壓厨廚双雙发發变變叶葉后後吗嗎听聽启啟哑啞围圍图圖圆圓场場坐座块塊垫墊墙牆处處备備复復头頭妆妝婴嬰实實宽寬对對导導层層屉屜属屬岛島带帶干乾并並库庫应應开開当當径徑态態总總悬懸懒懶户戶护護拟擬择擇挂掛挡擋挤擠损損换換据據摆擺摇搖撑撐数數无無时時显顯暂暫机機杂雜杆桿条條来來松鬆构構柜櫃标標栈棧栏欄样樣梁樑棱稜椭橢横橫橱櫥气氣没沒注註浅淺测測浏瀏游遊滚滾满滿灯燈灵靈点點热熱状狀独獨环環现現电電画畫监監盖蓋盘盤砖磚确確离離积積称稱竖豎筑築签籤类類约約级級线線结結绕繞绘繪给給统統继繼绿綠缀綴编編缝縫缩縮网網联聯脚腳获獲虚虛装裝见見视視览覽触觸计計认認让讓议議记記设設识識译譯该該语語请請读讀调調负負败敗质質贴貼赶趕转轉轮輪软軟轴軸轻輕载載较較辅輔辑輯边邊过過这這进進远遠适適选選邻鄰里裡针針钢鋼钮鈕铰鉸铺鋪销銷锁鎖键鍵镜鏡长長门門闭閉闲閒间間阅閱阳陽阴陰阶階随隨隐隱静靜页頁顶頂项項顺順颜顏飘飄飞飛马馬鸟鳥齐齊龙龍').match(/../gu).map(p => [...p]));
+const S2T = new Map(('与與两兩个個为為书書于於仅僅从從价價会會传傳体體余餘侧側倾傾储儲儿兒关關内內写寫净淨准準击擊则則刚剛删刪制製办辦动動势勢区區单單占佔卧臥卫衛厅廳历歷压壓厨廚双雙发發变變叶葉后後吗嗎听聽启啟哑啞围圍图圖圆圓场場坐座块塊垫墊墙牆处處备備复復头頭妆妝婴嬰实實宽寬对對导導层層屉屜属屬岛島带帶干乾并並库庫应應开開当當径徑态態总總悬懸懒懶户戶护護拟擬择擇挂掛挡擋挤擠损損换換据據摆擺摇搖撑撐数數无無时時显顯暂暫机機杂雜杆桿条條来來松鬆构構柜櫃标標栈棧栏欄样樣梁樑棱稜椭橢横橫橱櫥气氣没沒注註浅淺测測浏瀏游遊滚滾满滿灯燈灵靈点點热熱状狀独獨环環现現电電画畫监監盖蓋盘盤砖磚确確离離积積称稱竖豎筑築签籤类類约約级級线線结結绕繞绘繪给給统統继繼绿綠缀綴编編缝縫缩縮网網联聯脚腳获獲虚虛装裝见見视視览覽触觸计計认認让讓议議记記设設识識译譯该該语語请請读讀调調负負败敗质質贴貼赶趕转轉轮輪软軟轴軸轻輕载載较較辅輔辑輯边邊过過这這进進远遠适適选選邻鄰里裡针針钢鋼钮鈕铰鉸铺鋪销銷锁鎖键鍵镜鏡长長门門闭閉闲閒间間阅閱阳陽阴陰阶階随隨隐隱静靜页頁顶頂项項顺順颜顏飘飄飞飛马馬鸟鳥齐齊龙龍饰飾').match(/../gu).map(p => [...p]));
 const s2t = s => S2T_PHRASES.reduce((a, [f, t]) => a.replaceAll(f, t), s).replace(/[\u3400-\u9fff]/g, c => S2T.get(c) || c);
 const tr = (zh, en) => LANG === 'en' ? en : LANG === 'zht' ? s2t(zh) : zh;
 // 内置的房间 / 材料 / 家具名称存的是中文；英文界面下显示译名，用户自己改过的名称原样显示
@@ -17,6 +17,7 @@ const NAMES_EN = {
   '橡木地板':'Oak Flooring', '胡桃木地板':'Walnut Flooring', '800 地砖':'800 Tile', '600 地砖':'600 Tile', '大理石':'Marble',
   '300 防滑砖':'300 Anti-slip Tile', '水磨石':'Terrazzo', '满铺地毯':'Wall-to-wall Carpet',
   '卧室':'Bedroom', '餐厨':'Dining & Kitchen', '卫浴':'Bathroom', '家电':'Appliances', '书房 · 休闲':'Study & Leisure', '电竞':'Esports', '自定义':'Custom',
+  '桌椅':'Desks & Chairs', '屏幕':'Screens', '外设':'Peripherals', '装饰':'Decor', '坐卧':'Bed & Sofa', '休闲':'Leisure',
   '紧凑单人电竞房':'Compact Battlestation', '标准电竞房':'Standard Battlestation', '客厅电竞角':'Living-room Corner', '房门':'Door',
   '电竞桌':'Gaming Desk', '加长电竞桌':'Long Gaming Desk', 'L 形电竞桌':'L-shaped Gaming Desk', '电竞椅':'Gaming Chair',
   '27 寸显示器':'27" Monitor', '34 寸带鱼屏':'34" Ultrawide', '双屏':'Dual Monitors', '机箱':'PC Case', '桌面音箱':'Desktop Speaker',
@@ -32,7 +33,7 @@ const NAMES_EN = {
   '马桶':'Toilet', '浴室柜':'Vanity', '双盆浴室柜':'Double Vanity', '淋浴房':'Shower', '淋浴区':'Shower Area', '浴缸':'Bathtub',
   '洗衣机':'Washer', '洗衣池':'Laundry Sink', '电热水器':'Water Heater', '储物柜':'Storage Cabinet', '65 寸电视':'65" TV',
   '55 寸电视':'55" TV', '对开门冰箱':'French-door Fridge', '柜机空调':'Floor AC', '挂机空调':'Wall AC', '洗碗机':'Dishwasher',
-  '蒸烤箱高柜':'Oven Tower', '烘干机':'Dryer', '空气净化器':'Air Purifier', '长书桌':'Long Desk', '办公椅':'Office Chair',
+  '蒸烤箱高柜':'Oven Tower', '烘干机':'Dryer', '空气净化器':'Air Purifier', '圆柱柜机空调':'Cylindrical Floor AC', '长书桌':'Long Desk', '办公椅':'Office Chair',
   '大书架':'Large Bookshelf', '立式钢琴':'Upright Piano', '跑步机':'Treadmill', '阅读椅':'Reading Chair', '茶桌':'Tea Table', '休闲椅':'Lounge Chair',
 };
 const nm = s => LANG === 'en' ? (NAMES_EN[s] ?? s) : LANG === 'zht' ? s2t(s) : s;
@@ -132,47 +133,36 @@ const MATS = {
   carpet:  {name:'满铺地毯', price:200, sw:'#c9c3d3'},
 };
 // 家具库：[类型, 名称, 宽, 深, 颜色]
-const LIB = [
-  {cat:'卧室', items:[
-    ['bed','双人床 1.8m',1800,2000,'#c9d6df'],['bed','双人床 1.5m',1500,2000,'#d8c7dc'],['bed','单人床',1200,2000,'#e8d5b5'],
-    ['crib','婴儿床',1250,700,'#efe3d0'],['nightstand','床头柜',450,400,'#e8dccb'],['wardrobe','衣柜',2000,600,'#efe6d8'],
-    ['wardrobe','小衣柜',1200,550,'#efe6d8'],['dresser','梳妆台',1000,450,'#efe6d8'],['desk','书桌',1200,600,'#e2cfb4'],
-    ['chair','椅子',450,480,'#cfc6b8'],['bookshelf','书架',800,300,'#e2cfb4'],['baycushion','飘窗垫',520,1800,'#e7dccd']]},
-  {cat:'客厅', items:[
-    ['sofa','三人沙发',2400,900,'#b7c4b0'],['sofa','双人沙发',1700,880,'#c3cbd6'],['cornersofa','转角沙发',2800,1700,'#b7c4b0'],
-    ['armchair','单人沙发',850,850,'#d6b99a'],['beanbag','懒人沙发',800,800,'#e0b98f'],['coffeetable','茶几',1300,650,'#e8dccb'],
-    ['nesttable','大小圆茶几',1190,640,'#e9e5de'],
-    ['sidetable','边几',500,500,'#d9c3a3'],['tvstand','电视柜',2400,400,'#e2cfb4'],['rug','地毯',2400,1700,'#d9cbb8'],
-    ['shoecab','鞋柜',1000,350,'#efe6d8'],['shoecab','玄关柜',1400,380,'#e6dccc'],['shoecol','通顶鞋柜',800,320,'#eef1f3'],['floorlamp','落地灯',450,450,'#3d3a34'],
-    ['plant','绿植',500,500,'#a9c39b'],['plant','大绿植',700,700,'#9dbb8c']]},
-  {cat:'餐厨', items:[
-    ['table','餐桌',1400,800,'#e2cfb4'],['table','六人餐桌',1800,900,'#d8c2a2'],['roundtable','圆桌',1000,1000,'#e2cfb4'],
-    ['chair','餐椅',450,480,'#cfc6b8'],['island','岛台',1800,900,'#e9e5de'],['barstool','吧椅',420,420,'#6b5d4c'],
-    ['counter','橱柜台面',1600,600,'#e9e5de'],['stove','燃气灶',750,450,'#dcdcdc'],['ksink','水槽',800,450,'#e1e6ea'],
-    ['fridge','冰箱',700,700,'#dfe4e8'],['cabinet','餐边柜',1600,400,'#efe6d8'],['winecab','酒柜',1600,400,'#e6dccc']]},
-  {cat:'卫浴', items:[
-    ['toilet','马桶',400,700,'#ffffff'],['vanity','浴室柜',800,500,'#eef1f3'],['vanity','双盆浴室柜',1200,500,'#eef1f3'],
-    ['shower','淋浴房',900,900,'#e4edf2'],['bathtub','浴缸',1600,750,'#eef3f6'],['washer','洗衣机',600,600,'#e6ebee'],
-    ['waterheater','电热水器',800,450,'#f4f4f2'],['gasheater','燃气热水器',335,163,'#e6dccc'],['cabinet','储物柜',1000,400,'#efe6d8']]},
-  {cat:'家电', items:[
-    ['tv','65 寸电视',1450,80,'#1d1d1f'],['tv','55 寸电视',1230,80,'#1d1d1f'],['fridge','对开门冰箱',910,700,'#c9ced3'],
-    ['aircon','柜机空调',500,380,'#f6f7f8'],['acwall','挂机空调',900,250,'#f6f7f8'],['dishwasher','洗碗机',600,600,'#c9ced3'],
-    ['ovencol','蒸烤箱高柜',600,600,'#efe6d8'],['dryer','烘干机',600,600,'#e6ebee'],['purifier','空气净化器',400,300,'#f4f4f2']]},
-  {cat:'书房 · 休闲', items:[
-    ['desk','长书桌',1600,700,'#d8c2a2'],['officechair','办公椅',620,620,'#4a4f55'],['bookshelf','大书架',1600,350,'#e2cfb4'],
-    ['piano','立式钢琴',1500,600,'#1f1d1b'],['treadmill','跑步机',800,1800,'#3a3a3c'],['armchair','阅读椅',750,800,'#c9a98a']]},
-  {cat:'电竞', items:[
-    ['gamedesk','电竞桌',1600,750,'#34383f'],['gamedesk','加长电竞桌',1800,800,'#34383f'],['ldesk','L 形电竞桌',1800,1500,'#34383f'],
-    ['gamechair','电竞椅',680,700,'#3a3f46'],['monitor','27 寸显示器',620,240,'#1d1d1f'],['ultrawide','34 寸带鱼屏',900,250,'#1d1d1f'],
-    ['dualmon','双屏',1280,250,'#1d1d1f'],['pctower','机箱',240,480,'#2c3036'],['deskspeaker','桌面音箱',180,160,'#2b2b2d'],
-    ['micarm','麦克风悬臂',420,360,'#3a3d42'],['headset','耳机支架',180,180,'#34383f'],['figurecab','手办柜',900,400,'#24282e'],
-    ['acoustic','吸音板',1200,60,'#4a4f55'],['pegboard','洞洞板',1000,40,'#d8c2a2'],['ledbar','灯带',1400,50,'#1d1d1f'],
-    ['curtain','遮光帘',1800,90,'#3d3a34'],['console','游戏主机',400,280,'#1d1d1f'],['rug','电竞地毯',1600,1200,'#4a4f55']]},
+const CYL_AC = [
+  {name:'圆柱机身', role:'陶瓷', primitive:'cyl', size:[207.5, 207.5, 1737], note:'白色圆柱形主体'},
+  {name:'出风口', role:'黑金属', primitive:'box', size:[80, 1100, 20], note:'正面细长出风口'},
+  {name:'显示屏', role:'屏幕', primitive:'box', size:[60, 80, 10], note:'出风口上方数字显示屏'},
+  {name:'底座', role:'陶瓷', primitive:'cyl', size:[220, 220, 40], note:'略宽的圆形底座'},
 ];
-{
-  const esportsCat = LIB.findIndex(c => c.cat === '电竞');
-  if (esportsCat > 0) LIB.unshift(LIB.splice(esportsCat, 1)[0]);
-}
+const LIB = [
+  {cat:'桌椅', items:[
+    ['gamedesk','电竞桌',1600,750,'#34383f'],['gamedesk','加长电竞桌',1800,800,'#34383f'],['ldesk','L 形电竞桌',1800,1500,'#34383f'],
+    ['gamechair','电竞椅',680,700,'#3a3f46']]},
+  {cat:'屏幕', items:[
+    ['monitor','27 寸显示器',620,240,'#1d1d1f'],['ultrawide','34 寸带鱼屏',900,250,'#1d1d1f'],['dualmon','双屏',1280,250,'#1d1d1f'],
+    ['tv','65 寸电视',1450,80,'#1d1d1f'],['tv','55 寸电视',1230,80,'#1d1d1f']]},
+  {cat:'外设', items:[
+    ['pctower','机箱',240,480,'#2c3036'],['console','游戏主机',400,280,'#1d1d1f'],['deskspeaker','桌面音箱',180,160,'#2b2b2d'],
+    ['micarm','麦克风悬臂',420,360,'#3a3d42'],['headset','耳机支架',180,180,'#34383f'],['ledbar','灯带',1400,50,'#1d1d1f']]},
+  {cat:'装饰', items:[
+    ['figurecab','手办柜',900,400,'#24282e'],['rug','电竞地毯',1600,1200,'#4a4f55'],
+    ['plant','绿植',500,500,'#a9c39b'],['plant','大绿植',700,700,'#9dbb8c'],
+    ['acoustic','吸音板',1200,60,'#4a4f55'],['pegboard','洞洞板',1000,40,'#d8c2a2'],['curtain','遮光帘',1800,90,'#3d3a34']]},
+  {cat:'坐卧', items:[
+    ['bed','单人床',1200,2000,'#e8d5b5'],['sofa','双人沙发',1700,880,'#c3cbd6']]},
+  {cat:'家电', items:[
+    ['fridge','冰箱',700,700,'#dfe4e8'],['fridge','对开门冰箱',910,700,'#c9ced3'],
+    ['aircon','柜机空调',500,380,'#f6f7f8'],['acwall','挂机空调',900,250,'#f6f7f8'],
+    ['cylindricalaircon','圆柱柜机空调',415,430,'#ffffff', CYL_AC],
+    ['purifier','空气净化器',400,300,'#f4f4f2']]},
+  {cat:'休闲', items:[
+    ['piano','立式钢琴',1500,600,'#1f1d1b'],['treadmill','跑步机',800,1800,'#3a3a3c']]},
+];
 const typeColor = t => { for (const c of LIB) for (const i of c.items) if (i[0]===t) return i[4]; return '#eee'; };
 
 let _n = 1;

@@ -6,9 +6,10 @@
 
 ```bash
 cd esports-room
-python3 -m http.server 8000
+npm install
+npm run dev
 ```
 
-打开 `http://localhost:8000/`。三维通过 jsDelivr 加载 Three.js r160，第一次进入三维需要联网。
+打开终端里给出的本地地址，默认是 `http://localhost:5184`。改 `index.html` 或 `js/` 后页面会自动刷新。Three.js 用依赖里的 r160。
 
 许可沿用上游 MIT：Copyright (c) 2026 wuyi。原文在 [LICENSE](LICENSE)。

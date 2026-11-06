@@ -9,7 +9,7 @@ import ElgatoLight from './ElgatoLight.js'
 import BouncingLogo from './BouncingLogo.js'
 import Screen from './Screen.js'
 import AssetViews from './AssetViews.js'
-import { assembleComputer } from './monitorAssembly.js'
+import { assembleRoom, attachKeyboardPrint } from './roomAssembly.js'
 
 export default class World
 {
@@ -32,7 +32,7 @@ export default class World
                 this.setElgatoLight()
                 this.setBouncingLogo()
                 this.setScreens()
-                this.setComputer()
+                this.setAssembly()
                 this.setAssetViews()
             }
         })
@@ -85,12 +85,38 @@ export default class World
         )
     }
 
-    setComputer()
+    setAssembly()
     {
-        this.computer = assembleComputer(this.baked.model.mesh, this.pcScreen.model.mesh)
+        this.assembly = assembleRoom(this.baked.model.mesh, {
+            pcScreen: this.pcScreen.model.mesh,
+            macScreen: this.macScreen.model.mesh,
+            elgato: this.elgatoLight.model.mesh,
+            steam: this.coffeeSteam.model.mesh,
+            buttons: this.loupedeckButtons.model.items.map((item) => item.mesh),
+            leds: this.googleLeds.model.items.map((item) => item.mesh)
+        })
 
-        if(this.computer)
-            this.scene.add(this.computer)
+        const chairBase = this.assembly.chair
+
+        if(chairBase)
+        {
+            const chair = new THREE.Group()
+            chair.name = 'chair'
+            chair.add(this.topChair.model.group)
+            chair.add(chairBase)
+            this.assembly.chair = chair
+        }
+
+        if(this.assembly.keyboard)
+            attachKeyboardPrint(this.assembly.keyboard, this.baked.model.material)
+
+        for(const group of Object.values(this.assembly))
+            this.scene.add(group)
+
+        if(this.assembly.tv)
+            this.assembly.tv.attach(this.bouncingLogo.model.group)
+
+        this.computer = this.assembly.computer || null
     }
 
     setAssetViews()

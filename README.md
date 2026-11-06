@@ -28,10 +28,11 @@
 
 ```bash
 cd floorplan-3d
-python3 -m http.server 8000
+npm install
+npm run dev
 ```
 
-打开 `http://localhost:8000`。直接双击 `index.html` 可以看平面；三维通过 jsDelivr 加载 Three.js r160，第一次进入三维需要联网。
+打开 `http://localhost:5183`。改 `js/` 或页面后浏览器会自动刷新。三维用依赖里的 Three.js r160。
 
 主要文件：
 
@@ -53,10 +54,11 @@ python3 -m http.server 8000
 
 ```bash
 cd esports-room
-python3 -m http.server 8000
+npm install
+npm run dev
 ```
 
-打开 `http://localhost:8000/`。从仓库根目录起服务时，地址是 `http://localhost:8000/esports-room/`。
+打开 `http://localhost:5184`。改 `js/` 或页面后浏览器会自动刷新。和户型编辑器可以同时开着。
 
 ## house-plan-designer
 

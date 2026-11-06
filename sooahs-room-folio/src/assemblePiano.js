@@ -37,9 +37,24 @@ function isAcrylicSheet(size) {
   return minEdge < 0.06 && maxEdge > 1.2;
 }
 
-// The clear case is a set of tall flat sheets that touch the keyboard.
-// The stand is the tube frame under the keys, so it is kept with the instrument.
-function keepIsland(worldBox, volume, keyBox) {
+function inStand(worldBox, keyBox, below, forward) {
+  const centerX = (worldBox.min.x + worldBox.max.x) * 0.5;
+  const centerY = (worldBox.min.y + worldBox.max.y) * 0.5;
+  const centerZ = (worldBox.min.z + worldBox.max.z) * 0.5;
+  return (
+    centerX >= keyBox.min.x - 0.15 &&
+    centerX <= keyBox.max.x + 0.15 &&
+    centerZ >= keyBox.min.z - 0.65 &&
+    centerZ <= keyBox.max.z + forward &&
+    centerY >= keyBox.min.y - below &&
+    centerY <= keyBox.max.y &&
+    worldBox.min.y >= keyBox.min.y - (below + 0.05)
+  );
+}
+
+// Tube faces are long ribbons. Their bounds look like the clear case, but the
+// triangles only cover a thin strip, so the area is far smaller than the box.
+function keepIsland(worldBox, volume, keyBox, fill) {
   worldBox.getSize(islandSize);
   const keyWidth = keyBox.getSize(corner).x;
   const maxEdge = Math.max(islandSize.x, islandSize.y, islandSize.z);
@@ -49,21 +64,9 @@ function keepIsland(worldBox, volume, keyBox) {
     islandSize.y <= 0.8 &&
     maxEdge <= keyWidth + 0.8;
   if (instrument) return true;
-
-  const centerX = (worldBox.min.x + worldBox.max.x) * 0.5;
-  const centerY = (worldBox.min.y + worldBox.max.y) * 0.5;
-  const centerZ = (worldBox.min.z + worldBox.max.z) * 0.5;
-  return (
-    centerX >= keyBox.min.x - 0.15 &&
-    centerX <= keyBox.max.x + 0.15 &&
-    centerZ >= keyBox.min.z - 0.65 &&
-    centerZ <= keyBox.max.z + 0.35 &&
-    centerY >= keyBox.min.y - 2.15 &&
-    centerY <= keyBox.max.y &&
-    worldBox.min.y >= keyBox.min.y - 2.2 &&
-    maxEdge <= 1.6 &&
-    !isAcrylicSheet(islandSize)
-  );
+  if (!inStand(worldBox, keyBox, 2.15, 0.35)) return false;
+  if (fill < 0.25 && maxEdge <= keyWidth + 0.8) return true;
+  return maxEdge <= 1.6 && !isAcrylicSheet(islandSize);
 }
 
 export function splitPianoGeometry(geometry, matrix, keyBox) {
@@ -105,15 +108,33 @@ export function splitPianoGeometry(geometry, matrix, keyBox) {
       island = {
         min: [Infinity, Infinity, Infinity],
         max: [-Infinity, -Infinity, -Infinity],
+        area: 0,
         keep: false,
       };
       islands.set(root, island);
     }
-    for (let cornerIndex = 0; cornerIndex < 3; cornerIndex += 1) {
-      const vertex = source[triangle * 3 + cornerIndex];
-      const x = position.getX(vertex);
-      const y = position.getY(vertex);
-      const z = position.getZ(vertex);
+    const ax = position.getX(source[triangle * 3]);
+    const ay = position.getY(source[triangle * 3]);
+    const az = position.getZ(source[triangle * 3]);
+    const bx = position.getX(source[triangle * 3 + 1]);
+    const by = position.getY(source[triangle * 3 + 1]);
+    const bz = position.getZ(source[triangle * 3 + 1]);
+    const cx = position.getX(source[triangle * 3 + 2]);
+    const cy = position.getY(source[triangle * 3 + 2]);
+    const cz = position.getZ(source[triangle * 3 + 2]);
+    const ex = bx - ax;
+    const ey = by - ay;
+    const ez = bz - az;
+    const fx = cx - ax;
+    const fy = cy - ay;
+    const fz = cz - az;
+    island.area +=
+      0.5 * Math.hypot(ey * fz - ez * fy, ez * fx - ex * fz, ex * fy - ey * fx);
+    for (const [x, y, z] of [
+      [ax, ay, az],
+      [bx, by, bz],
+      [cx, cy, cz],
+    ]) {
       if (x < island.min[0]) island.min[0] = x;
       if (y < island.min[1]) island.min[1] = y;
       if (z < island.min[2]) island.min[2] = z;
@@ -125,8 +146,12 @@ export function splitPianoGeometry(geometry, matrix, keyBox) {
 
   const volume = pianoVolume(keyBox);
   for (const island of islands.values()) {
+    const spanX = island.max[0] - island.min[0];
+    const spanY = island.max[1] - island.min[1];
+    const spanZ = island.max[2] - island.min[2];
+    const face = Math.max(spanX * spanY, spanX * spanZ, spanY * spanZ);
     worldBoxFromLocal(island.min, island.max, matrix, islandBox);
-    island.keep = keepIsland(islandBox, volume, keyBox);
+    island.keep = keepIsland(islandBox, volume, keyBox, island.area / Math.max(face, 1e-6));
   }
 
   let bodyTriangles = 0;

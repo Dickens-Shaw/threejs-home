@@ -51,7 +51,10 @@ export default function ExplodeRig() {
   const layoutTween = useRef(null);
   const cameraTween = useRef(null);
   const leaders = useMemo(() => {
-    const movable = PARTS.filter((part) => !part.anchor).length;
+    const movable = Math.max(
+      PARTS.filter((part) => !part.anchor).length,
+      512
+    );
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute(
       "position",
@@ -448,7 +451,7 @@ export default function ExplodeRig() {
     helper.material.color.set(isDarkRoom ? "#ffffff" : "#111111");
     outlined.updateWorldMatrix(true, true);
     helper.setFromObject(outlined);
-  }, 1);
+  });
 
   return (
     <>

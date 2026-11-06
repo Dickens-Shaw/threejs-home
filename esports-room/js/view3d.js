@@ -12,7 +12,7 @@ import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 import {CSS2DRenderer, CSS2DObject} from 'three/addons/renderers/CSS2DRenderer.js';
 
 const stage = $('#stage'), host = $('#view3d');
-const OX = 6000, OY = 5300, H = 2.8, FOV = 45;       // 户型中心放在世界原点，层高 2.8 m
+const OX = 6000, OY = 5300, H = 2.8, FOV = 45, SLAB = .16; // 户型中心放在世界原点，层高 2.8 m；地面厚 16 cm
 const wx = x => (x - OX) / 1000, wz = y => (y - OY) / 1000, M = v => v / 1000;
 const SW = () => stage.clientWidth, SH = () => stage.clientHeight;
 const opt = {cut:2.8, furn:true, labels:true, night:false, hour:10, mode:'orbit', exhibit:false};
@@ -51,7 +51,7 @@ function init(){
   Object.assign(sun.shadow.camera, {left:-11, right:11, top:11, bottom:-11, near:1, far:60});
   sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.02;
   ground = new THREE.Mesh(new THREE.PlaneGeometry(160, 160), new THREE.MeshStandardMaterial({color:0xf2eee7, roughness:1}));
-  ground.rotation.x = -Math.PI/2; ground.position.y = -0.015; ground.receiveShadow = true;
+  ground.rotation.x = -Math.PI/2; ground.position.y = -SLAB - .02; ground.receiveShadow = true;
   scene.add(hemi, sun, sun.target, ground);
 
   const pm = new THREE.PMREMGenerator(renderer); envTex = pm.fromScene(new RoomEnvironment(), .04).texture; pm.dispose();
@@ -349,8 +349,375 @@ function deskPanel(g, x, z, sw, sh){
   g.add(rbox(sw, sh, .018, mat('#18181a', {roughness:.4, metalness:.35}), x, y0 + .1, z, .004));
   const scr = box(sw - .024, sh - .03, .004, screenMat('#163044'), x, y0 + .114, z + .01);
   scr.castShadow = false;
+  scr.userData.screen = true;
   g.add(scr, box(Math.min(.12, sw * .18), .004, .003, '#9aa0a6', x, y0 + .104, z + .012));
 }
+// 显示器和电视的画面。src 可以是在线链接，或 idb: 开头的本地文件。
+const SCREEN_DB = 'esports-screen-media';
+const screenPool = new Map();
+let screenToken = 0;
+function screenDb(){
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(SCREEN_DB, 1);
+    req.onupgradeneeded = () => { if (!req.result.objectStoreNames.contains('blobs')) req.result.createObjectStore('blobs'); };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+function screenTx(db, mode, run){
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('blobs', mode);
+    const out = run(tx.objectStore('blobs'));
+    tx.oncomplete = () => resolve(out.result);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function screenGet(key){
+  const db = await screenDb();
+  try { return await screenTx(db, 'readonly', store => store.get(key)); }
+  finally { db.close(); }
+}
+function screenKind(url, mime, name){
+  const m = String(mime || '').toLowerCase();
+  const file = String(name || url || '').split('?')[0].split('#')[0].toLowerCase();
+  if (m.startsWith('video/') || /\.(mp4|m4v|webm|ogv|ogg|mov|mkv)$/.test(file)) return 'video';
+  if (m === 'image/gif' || m === 'image/webp' || m === 'image/avif' || m === 'image/apng' || /\.(gif|webp|avif|apng)$/.test(file)) return 'anim';
+  return 'image';
+}
+function sniffMime(buf){
+  const b = new Uint8Array(buf.slice(0, 16));
+  if (b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46) return 'image/gif';
+  if (b[0] === 0x52 && b[1] === 0x49 && b[8] === 0x57 && b[9] === 0x45) return 'image/webp';
+  if (b[0] === 0xff && b[1] === 0xd8) return 'image/jpeg';
+  if (b[0] === 0x89 && b[1] === 0x50) return 'image/png';
+  if (b[4] === 0x66 && b[5] === 0x74 && b[6] === 0x79 && b[7] === 0x70) return 'video/mp4';
+  return '';
+}
+async function screenOpen(src){
+  if (!src) return null;
+  if (src.startsWith('idb:')){
+    const rec = await screenGet(src.slice(4));
+    if (!rec || !rec.blob) return null;
+    return {url:URL.createObjectURL(rec.blob), mime:rec.type || rec.blob.type || '', name:rec.name || '', revoke:true};
+  }
+  const mime = src.startsWith('data:') ? (src.slice(5).split(/[;,]/)[0] || '') : '';
+  return {url:src, mime, name:'', revoke:false};
+}
+function screenMaterial(texture){
+  texture.colorSpace = THREE.SRGBColorSpace;
+  if (renderer) texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  return new THREE.MeshBasicMaterial({map:texture, toneMapped:false});
+}
+function loadImageTexture(url){
+  return new Promise((resolve, reject) => {
+    const loader = new THREE.TextureLoader();
+    if (/^https?:/i.test(url)) loader.setCrossOrigin('anonymous');
+    loader.load(url, tex => resolve(tex), undefined, () => reject(new Error('image')));
+  });
+}
+function armVideoPlay(video){
+  if (!renderer) return;
+  const kick = () => { video.play().catch(() => {}); renderer.domElement.removeEventListener('pointerdown', kick); };
+  renderer.domElement.addEventListener('pointerdown', kick);
+}
+function videoMedia(opened){
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video');
+    video.muted = true; video.loop = true; video.playsInline = true; video.autoplay = true; video.preload = 'auto';
+    video.setAttribute('playsinline', '');
+    if (/^https?:/i.test(opened.url)) video.crossOrigin = 'anonymous';
+    const fail = () => reject(new Error('video'));
+    video.onerror = fail;
+    video.onloadeddata = () => {
+      video.onerror = null;
+      video.play().catch(() => armVideoPlay(video));
+      const texture = new THREE.VideoTexture(video);
+      const material = screenMaterial(texture);
+      resolve({material, release(){ video.pause(); video.removeAttribute('src'); video.load(); texture.dispose(); material.dispose(); if (opened.revoke) URL.revokeObjectURL(opened.url); }});
+    };
+    video.src = opened.url;
+  });
+}
+async function animMedia(opened){
+  if (typeof ImageDecoder !== 'function') throw new Error('still');
+  const res = await fetch(opened.url);
+  if (!res.ok) throw new Error('fetch');
+  const buf = await res.arrayBuffer();
+  const decoder = new ImageDecoder({data:buf, type:opened.mime || sniffMime(buf) || 'image/gif'});
+  let texture = null, material = null, stopped = false, handed = false;
+  try {
+    await decoder.tracks.ready;
+    const track = decoder.tracks.selectedTrack;
+    if (!track || track.frameCount < 2) throw new Error('still');
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    texture = new THREE.CanvasTexture(canvas);
+    material = screenMaterial(texture);
+    let frame = 0;
+    const step = async () => {
+      if (stopped) return;
+      const result = await decoder.decode({frameIndex:frame % track.frameCount});
+      const image = result.image;
+      if (canvas.width !== image.displayWidth) canvas.width = image.displayWidth;
+      if (canvas.height !== image.displayHeight) canvas.height = image.displayHeight;
+      ctx.drawImage(image, 0, 0);
+      const ms = image.duration ? Math.min(1000, Math.max(16, image.duration / 1000)) : 100;
+      image.close();
+      texture.needsUpdate = true;
+      frame++;
+      if (!stopped) setTimeout(() => step().catch(() => {}), ms);
+    };
+    await step();
+    handed = true;
+    return {material, release(){ stopped = true; decoder.close(); texture.dispose(); material.dispose(); if (opened.revoke) URL.revokeObjectURL(opened.url); }};
+  } catch(e) {
+    if (!handed){ try { decoder.close(); } catch(err) {} if (texture) texture.dispose(); if (material) material.dispose(); }
+    throw e;
+  }
+}
+async function imageMedia(opened){
+  const texture = await loadImageTexture(opened.url);
+  const material = screenMaterial(texture);
+  return {material, release(){ texture.dispose(); material.dispose(); if (opened.revoke) URL.revokeObjectURL(opened.url); }};
+}
+async function createScreenMedia(src){
+  const opened = await screenOpen(src);
+  if (!opened) throw new Error('missing');
+  try {
+    const kind = screenKind(opened.url, opened.mime, opened.name);
+    if (kind === 'video') return await videoMedia(opened);
+    if (kind === 'anim'){
+      try { return await animMedia(opened); }
+      catch(e) { return await imageMedia(opened); }
+    }
+    return await imageMedia(opened);
+  } catch(e) {
+    if (opened.revoke) URL.revokeObjectURL(opened.url);
+    throw e;
+  }
+}
+function retainScreen(src){
+  let slot = screenPool.get(src);
+  if (!slot){
+    slot = {n:0, dying:false, pending:createScreenMedia(src)};
+    screenPool.set(src, slot);
+    slot.pending.catch(() => { if (screenPool.get(src) === slot && slot.n <= 0) screenPool.delete(src); });
+  }
+  slot.n++;
+  return slot.pending;
+}
+function releaseScreenSrc(src){
+  const slot = screenPool.get(src);
+  if (!slot) return;
+  slot.n--;
+  if (slot.n > 0 || slot.dying) return;
+  slot.dying = true;
+  queueMicrotask(() => {
+    slot.dying = false;
+    if (slot.n > 0 || screenPool.get(src) !== slot) return;
+    screenPool.delete(src);
+    slot.pending.then(media => media && media.release()).catch(() => {});
+  });
+}
+function youtubeIdOf(src){
+  let url;
+  try { url = new URL(src); }
+  catch { return ''; }
+  const host = url.hostname.replace(/^www\./, '').replace(/^m\./, '');
+  let id = '';
+  if (host === 'youtu.be') id = url.pathname.split('/').filter(Boolean)[0] || '';
+  else if (host === 'youtube.com' || host === 'youtube-nocookie.com' || host === 'music.youtube.com'){
+    if (url.pathname === '/watch') id = url.searchParams.get('v') || '';
+    else {
+      const m = url.pathname.match(/^\/(?:embed|shorts|live|v)\/([^/?#]+)/);
+      if (m) id = m[1];
+    }
+  }
+  return /^[A-Za-z0-9_-]{11}$/.test(id) ? id : '';
+}
+function bilibiliOf(src){
+  let url;
+  try { url = new URL(src); }
+  catch { return null; }
+  const host = url.hostname.replace(/^www\./, '').replace(/^m\./, '');
+  let bvid = '', aid = '';
+  if (host === 'bilibili.com'){
+    const bv = url.pathname.match(/^\/video\/(BV[0-9A-Za-z]{10})/);
+    const av = url.pathname.match(/^\/video\/av(\d+)/i);
+    if (bv) bvid = bv[1];
+    else if (av) aid = av[1];
+  } else if (host === 'player.bilibili.com'){
+    bvid = url.searchParams.get('bvid') || '';
+    aid = url.searchParams.get('aid') || '';
+  } else return null;
+  if (!/^BV[0-9A-Za-z]{10}$/.test(bvid)) bvid = '';
+  if (!/^\d+$/.test(aid)) aid = '';
+  if (!bvid && !aid) return null;
+  const page = Number(url.searchParams.get('p') || url.searchParams.get('page') || 1);
+  const p = Number.isInteger(page) && page > 0 && page < 1000 ? page : 1;
+  const q = new URLSearchParams({isOutside:'true', p:String(p), autoplay:'1', high_quality:'1', as_wide:'1'});
+  if (bvid) q.set('bvid', bvid); else q.set('aid', aid);
+  return {id:(bvid || ('av' + aid)) + ':' + p, title:'哔哩哔哩', src:'https://player.bilibili.com/player.html?' + q.toString()};
+}
+function embedOf(src){
+  const yt = youtubeIdOf(src);
+  if (yt) return {id:'yt:' + yt, title:'YouTube', src:`https://www.youtube-nocookie.com/embed/${yt}?autoplay=1&mute=1&loop=1&playlist=${yt}&playsinline=1&rel=0&modestbranding=1`};
+  return bilibiliOf(src);
+}
+const ytSlots = new Map();
+const _ytV = new THREE.Vector3(), _ytN = new THREE.Vector3(), _ytQ = new THREE.Quaternion(), _ytP = new THREE.Vector3();
+function youtubeFrame(embed){
+  const el = document.createElement('div');
+  el.style.cssText = 'position:absolute;left:0;top:0;overflow:hidden;background:#000;z-index:2;pointer-events:auto;transform-origin:0 0;';
+  const iframe = document.createElement('iframe');
+  iframe.src = embed.src;
+  iframe.title = embed.title;
+  iframe.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+  iframe.allowFullscreen = true;
+  iframe.referrerPolicy = 'origin';
+  iframe.setAttribute('scrolling', 'no');
+  Object.assign(iframe.style, {width:'100%', height:'100%', border:'0', display:'block'});
+  el.appendChild(iframe);
+  host.appendChild(el);
+  return el;
+}
+function retainYoutube(key, embed, mesh){
+  let slot = ytSlots.get(key);
+  if (!slot){ slot = {n:0, dying:false, el:youtubeFrame(embed), mesh}; ytSlots.set(key, slot); }
+  slot.mesh = mesh; slot.n++; slot.el.style.display = '';
+  return slot;
+}
+function releaseYoutube(key){
+  const slot = ytSlots.get(key);
+  if (!slot) return;
+  slot.n--; slot.mesh = null;
+  if (slot.n > 0 || slot.dying) return;
+  slot.dying = true; slot.el.style.display = 'none';
+  queueMicrotask(() => {
+    slot.dying = false;
+    if (slot.n > 0 || ytSlots.get(key) !== slot) return;
+    slot.el.remove(); ytSlots.delete(key);
+  });
+}
+function mountYoutube(faces, src, fid){
+  const embed = embedOf(src);
+  if (!embed) return false;
+  faces.forEach((mesh, i) => {
+    const key = fid + '|' + i + '|' + embed.id;
+    mesh.userData.ytKey = key;
+    retainYoutube(key, embed, mesh);
+  });
+  return true;
+}
+function adj3(m){
+  return [
+    m[4]*m[8]-m[5]*m[7], m[2]*m[7]-m[1]*m[8], m[1]*m[5]-m[2]*m[4],
+    m[5]*m[6]-m[3]*m[8], m[0]*m[8]-m[2]*m[6], m[2]*m[3]-m[0]*m[5],
+    m[3]*m[7]-m[4]*m[6], m[1]*m[6]-m[0]*m[7], m[0]*m[4]-m[1]*m[3],
+  ];
+}
+function mul3(a, b){
+  const c = new Array(9);
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++){
+    let s = 0;
+    for (let k = 0; k < 3; k++) s += a[3*i+k]*b[3*k+j];
+    c[3*i+j] = s;
+  }
+  return c;
+}
+function mulv(m, v){ return [m[0]*v[0]+m[1]*v[1]+m[2]*v[2], m[3]*v[0]+m[4]*v[1]+m[5]*v[2], m[6]*v[0]+m[7]*v[1]+m[8]*v[2]]; }
+function basisToPoints(x1, y1, x2, y2, x3, y3, x4, y4){
+  const m = [x1, x2, x3, y1, y2, y3, 1, 1, 1];
+  const v = mulv(adj3(m), [x4, y4, 1]);
+  return mul3(m, [v[0], 0, 0, 0, v[1], 0, 0, 0, v[2]]);
+}
+// 把宽 w、高 h 的矩形贴到屏幕四个角。点序：左上、右上、左下、右下。
+function quadCss(w, h, x1, y1, x2, y2, x3, y3, x4, y4){
+  const s = basisToPoints(0, 0, w, 0, 0, h, w, h);
+  const d = basisToPoints(x1, y1, x2, y2, x3, y3, x4, y4);
+  const t = mul3(d, adj3(s));
+  if (!isFinite(t[8]) || Math.abs(t[8]) < 1e-8) return '';
+  for (let i = 0; i < 9; i++) t[i] /= t[8];
+  const m = [t[0], t[3], 0, t[6], t[1], t[4], 0, t[7], 0, 0, 1, 0, t[2], t[5], 0, t[8]];
+  return m.every(Number.isFinite) ? 'matrix3d(' + m.join(',') + ')' : '';
+}
+function placeYoutube(){
+  if (!ytSlots.size) return;
+  const vw = SW(), vh = SH();
+  if (vw < 2 || vh < 2){ ytSlots.forEach(slot => { slot.el.style.visibility = 'hidden'; }); return; }
+  ytSlots.forEach(slot => {
+    const mesh = slot.mesh, el = slot.el;
+    const geo = mesh && mesh.geometry && mesh.geometry.parameters;
+    if (!mesh || !geo || slot.n <= 0){ el.style.visibility = 'hidden'; return; }
+    mesh.getWorldQuaternion(_ytQ);
+    _ytN.set(0, 0, 1).applyQuaternion(_ytQ);
+    mesh.getWorldPosition(_ytP);
+    let shown = _ytN.dot(_ytV.copy(camera.position).sub(_ytP)) > 0 && opt.furn;
+    for (let node = mesh.parent; node; node = node.parent) if (node.visible === false) shown = false;
+    const w = geo.width, h = geo.height, d = (geo.depth || 0) / 2 + 0.004;
+    const local = [[-w/2, h/2, d], [w/2, h/2, d], [w/2, -h/2, d], [-w/2, -h/2, d]];
+    const pts = [];
+    for (const c of local){
+      _ytV.set(c[0], c[1], c[2]).applyMatrix4(mesh.matrixWorld).project(camera);
+      if (_ytV.z < -1 || _ytV.z > 1) shown = false;
+      pts.push({x:(_ytV.x * .5 + .5) * vw, y:(-_ytV.y * .5 + .5) * vh});
+    }
+    if (!shown){ el.style.visibility = 'hidden'; return; }
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const p of pts){ x0 = Math.min(x0, p.x); y0 = Math.min(y0, p.y); x1 = Math.max(x1, p.x); y1 = Math.max(y1, p.y); }
+    if (x1 - x0 < 2 || y1 - y0 < 2){ el.style.visibility = 'hidden'; return; }
+    const PW = 1280, ph = Math.max(2, Math.round(PW * h / w));
+    const css = quadCss(PW, ph, pts[0].x, pts[0].y, pts[1].x, pts[1].y, pts[3].x, pts[3].y, pts[2].x, pts[2].y);
+    if (!css){ el.style.visibility = 'hidden'; return; }
+    el.style.visibility = 'visible';
+    el.style.left = '0'; el.style.top = '0';
+    el.style.width = PW + 'px'; el.style.height = ph + 'px';
+    el.style.clipPath = 'none';
+    el.style.transform = css;
+  });
+}
+function paintScreens(group, src, fid){
+  const faces = [];
+  group.traverse(o => { if (o.userData.screen) faces.push(o); });
+  if (!faces.length || !src) return;
+  if (mountYoutube(faces, src, fid)) return;
+  const token = ++screenToken;
+  faces.forEach(m => m.userData.screenToken = token);
+  retainScreen(src).then(media => {
+    if (faces.some(m => m.userData.screenToken !== token)) return;
+    faces[0].userData.screenOwner = true;
+    faces[0].userData.screenSrc = src;
+    faces.forEach(m => { m.material = media.material; });
+  }).catch(() => {
+    if (faces.some(m => m.userData.screenToken !== token)) return;
+    releaseScreenSrc(src);
+    if (typeof toast === 'function') toast(tr('这个画面加载不了', 'Could not load this screen'));
+  });
+}
+function releaseScreenMesh(mesh){
+  mesh.userData.screenToken = 0;
+  if (!mesh.userData.screenOwner) return;
+  const src = mesh.userData.screenSrc;
+  mesh.userData.screenOwner = false;
+  mesh.userData.screenSrc = '';
+  releaseScreenSrc(src);
+}
+window.screenMedia = {
+  async put(file){
+    const db = await screenDb();
+    const key = (crypto.randomUUID && crypto.randomUUID()) || ('s' + Date.now().toString(36) + Math.random().toString(36).slice(2));
+    try {
+      await screenTx(db, 'readwrite', store => store.put({blob:file, name:file.name || '', type:file.type || ''}, key));
+    } finally { db.close(); }
+    return 'idb:' + key;
+  },
+  async note(src){
+    if (!src || !src.startsWith('idb:')) return '';
+    const rec = await screenGet(src.slice(4));
+    if (!rec) return tr('本地文件找不到了', 'Local file is missing');
+    return rec.name || tr('本地文件', 'Local file');
+  },
+};
 /* ======================= 家具模型（局部坐标：背面朝 -z） ======================= */
 function buildFurniture(f){
   const g = new THREE.Group(), w = M(f.w), d = M(f.d), c = f.color || '#ddd', bz = -d/2, R = rng(Math.round(f.w*7 + f.d*13 + f.cx + f.cy));
@@ -849,7 +1216,10 @@ function buildFurniture(f){
     case 'tv': {
       const th = w*.5625, yb = 1.2 - th/2, z = bz + .03;
       g.add(rbox(w*.6, th*.6, .03, '#222', 0, yb + th*.2, bz + .015, .01));
-      g.add(rbox(w, th, .025, mat('#18181a', {roughness:.4, metalness:.3}), 0, yb, z + .01, .004), box(w - .016, th - .022, .002, screenMat('#1f2b3a'), 0, yb + .014, z + .0235), box(.04, .006, .002, '#8a8a8e', 0, yb + .004, z + .0235));
+      g.add(rbox(w, th, .025, mat('#18181a', {roughness:.4, metalness:.3}), 0, yb, z + .01, .004));
+      const face = box(w - .016, th - .022, .002, screenMat('#1f2b3a'), 0, yb + .014, z + .0235);
+      face.castShadow = false; face.userData.screen = true;
+      g.add(face, box(.04, .006, .002, '#8a8a8e', 0, yb + .004, z + .0235));
       break;
     }
     case 'aircon': {
@@ -1083,6 +1453,7 @@ function buildFurniture(f){
     }
     default: g.add(box(w, .8, d, c));
   }
+  if (f.src && (f.type === 'monitor' || f.type === 'ultrawide' || f.type === 'dualmon' || f.type === 'tv')) paintScreens(g, f.src, f.id);
   g.position.set(wx(f.cx), 0, wz(f.cy));
   g.rotation.y = -f.rot * Math.PI/180;       // 平面顺时针旋转 → 绕 Y 轴负向
   g.userData.fid = f.id;
@@ -1090,7 +1461,7 @@ function buildFurniture(f){
 }
 
 /* ======================= 建筑 ======================= */
-function clearGroup(g){ g.traverse(o => { if (o.geometry) o.geometry.dispose(); }); g.clear(); }
+function clearGroup(g){ g.traverse(o => { if (o.userData && o.userData.ytKey) releaseYoutube(o.userData.ytKey); if (o.userData && o.userData.screen) releaseScreenMesh(o); if (o.geometry) o.geometry.dispose(); }); g.clear(); }
 function wallBox([x0, y0, x1, y1], yb, yt, m){
   if (yt - yb <= .001) return;
   const o = new THREE.Mesh(new THREE.BoxGeometry(M(x1-x0), yt-yb, M(y1-y0)), m || [wallMat, wallMat, capMat, wallMat, wallMat, wallMat]);
@@ -1103,7 +1474,34 @@ function wallBox([x0, y0, x1, y1], yb, yt, m){
   }
 }
 const edgeMat = new THREE.LineBasicMaterial({color:0x6f675b}), skirtMat = new THREE.MeshStandardMaterial({color:'#8b7f6e', roughness:.6});
+const slabEdge = new THREE.MeshStandardMaterial({color:'#b7aea0', roughness:.96});
 function shapeOf(poly, flip){ const s = new THREE.Shape(); poly.forEach(([x, y], i) => s[i ? 'lineTo' : 'moveTo'](wx(x), flip ? wz(y) : -wz(y))); return s; }
+// 顶面留在 y = 0，厚度向下。贴图按世界坐标铺，和原来的平面地面一样密。
+function floorSlab(poly){
+  const geo = new THREE.ExtrudeGeometry(shapeOf(poly), {depth:SLAB, bevelEnabled:false});
+  geo.rotateX(-Math.PI / 2);
+  geo.translate(0, -SLAB, 0);
+  const pos = geo.attributes.position, uv = geo.attributes.uv;
+  for (let i = 0; i < pos.count; i++) uv.setXY(i, pos.getX(i), pos.getZ(i));
+  return geo;
+}
+function addPlinth(w){
+  const len = Math.hypot(w.b[0] - w.a[0], w.b[1] - w.a[1]);
+  if (len < 1) return;
+  const axis = Math.abs(w.a[0] - w.b[0]) < 0.5 || Math.abs(w.a[1] - w.b[1]) < 0.5;
+  let o;
+  if (axis){
+    const [x0, y0, x1, y1] = wallAabb(w);
+    o = new THREE.Mesh(new THREE.BoxGeometry(M(x1 - x0), SLAB, M(y1 - y0)), slabEdge);
+    o.position.set(wx((x0 + x1) / 2), -SLAB / 2, wz((y0 + y1) / 2));
+  } else {
+    const ang = Math.atan2(w.b[1] - w.a[1], w.b[0] - w.a[0]);
+    o = new THREE.Mesh(new THREE.BoxGeometry(M(len), SLAB, M(w.thick || 200)), slabEdge);
+    o.position.set(wx((w.a[0] + w.b[0]) / 2), -SLAB / 2, wz((w.a[1] + w.b[1]) / 2));
+    o.rotation.y = -ang;
+  }
+  o.castShadow = o.receiveShadow = true; archFloor.add(o);
+}
 function pushAabb(x0, y0, x1, y1){
   colliders.push({x0:wx(Math.min(x0, x1)), z0:wz(Math.min(y0, y1)), x1:wx(Math.max(x0, x1)), z1:wz(Math.max(y0, y1))});
 }
@@ -1318,11 +1716,12 @@ function buildArch(){
   const top = opt.exhibit ? H : opt.cut;
   ROOMS.forEach(r => {
     const m = floorMat(state.rooms[r.id].mat), bay = r.counted === false;
-    const geo = bay ? new THREE.ExtrudeGeometry(shapeOf(r.poly), {depth:.45, bevelEnabled:false}) : new THREE.ShapeGeometry(shapeOf(r.poly));
-    geo.rotateX(-Math.PI/2);
-    const fl = new THREE.Mesh(geo, bay ? [m, mat('#e9e4da')] : m);
-    fl.receiveShadow = true; fl.userData.room = r.id;
-    if (bay){ fl.castShadow = true; archUp.add(fl); } else archFloor.add(fl);
+    let geo;
+    if (bay){ geo = new THREE.ExtrudeGeometry(shapeOf(r.poly), {depth:.45, bevelEnabled:false}); geo.rotateX(-Math.PI/2); }
+    else geo = floorSlab(r.poly);
+    const fl = new THREE.Mesh(geo, bay ? [m, mat('#e9e4da')] : [m, slabEdge]);
+    fl.receiveShadow = true; fl.castShadow = true; fl.userData.room = r.id;
+    if (bay) archUp.add(fl); else archFloor.add(fl);
     // 天花：法线朝下，只在室内仰视时可见
     const cg = new THREE.ShapeGeometry(shapeOf(r.poly, true)); cg.rotateX(Math.PI/2);
     const ceil = new THREE.Mesh(cg, mat('#fbfaf7', {roughness:1})); ceil.position.y = H; ceil.visible = !opt.exhibit && top >= H; archUp.add(ceil);
@@ -1335,6 +1734,7 @@ function buildArch(){
   [...DOORS, ...SLIDES].forEach(d => { const [x0, y0, x1, y1] = d.rect; const s = box(M(x1-x0), .012, M(y1-y0), mat('#d8d0c0', {roughness:.3}), wx((x0+x1)/2), 0, wz((y0+y1)/2)); s.castShadow = false; archFloor.add(s); });
   WALLS.forEach(w => {
     if (state.demolished.includes(w.id) || hidden.has(w.id)) return;
+    addPlinth(w);
     const {holes, spans} = solidSpans(w);
     const hgt = w.type === 'low' ? Math.min(1, top) : top;
     if (!holes.length){ addRun(w, 0, hgt); addColliderWall(w); return; }
@@ -1376,7 +1776,7 @@ function buildLabels(){
 let studio = false, pieceKey = '', pieceId = '';
 function showPiece(){
   const f = studioFurn || (ui.sel?.kind === 'furn' ? getF(ui.sel.id) : null);
-  const key = f ? [f.id, f.type, f.w, f.d, f.rot, f.color].join('|') : '';
+  const key = f ? [f.id, f.type, f.w, f.d, f.rot, f.color, f.src || ''].join('|') : '';
   const same = !!(f && pieceId === f.id);
   if (key === pieceKey) return;
   pieceKey = key; pieceId = f ? f.id : '';
@@ -1750,6 +2150,7 @@ function loop(){
   doors.forEach(d => { const tg = d.open ? d.a1 : d.a0; d.cur += (tg - d.cur) * Math.min(1, dt*6); d.pivot.rotation.y = d.cur; });
   updateSel();
   renderer.render(scene, camera);
+  placeYoutube();
   labelRenderer.render(scene, camera);
 }
 

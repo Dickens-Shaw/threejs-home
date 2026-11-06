@@ -1,28 +1,15 @@
-import { useVideoTexture } from "@react-three/drei";
 import { useGLTFWithKTX2 } from "../../utils/useGLTFWithKTX2";
-import { convertMaterialsToBasic } from "../../utils/convertToBasic";
+import { useRoomVideo } from "../../utils/useRoomVideo";
 import Part from "../../parts/Part";
 
 const MAC_POSITION = [-0.861, 0.815 - 0.02, 0.684];
 const MAC_ROTATION = [0, 0.523, 0];
 const COMPUTER_POSITION = [-0.302, 0.955 - 0.02, 0.647];
 const COMPUTER_ROTATION = [0, -0.053, 0];
-const FIRST_POSITION = [-0.231, -0.14 - 0.02, 0.652];
-const FIRST_ROTATION = [Math.PI, 0, Math.PI];
 
 export default function Model(props) {
-  const { nodes, materials } = useGLTFWithKTX2(
-    "/models/Dark Room/Dark_First.glb"
-  );
-  const newMaterials = convertMaterialsToBasic(materials);
-
-  const videoTexture = useVideoTexture("/videos/devwork.mp4", {
-    crossOrigin: "anonymous",
-    muted: true,
-    loop: true,
-    playsInline: true,
-    start: true,
-  });
+  const { nodes } = useGLTFWithKTX2("/models/Dark Room/Dark_First.glb");
+  const videoTexture = useRoomVideo("/videos/devwork.mp4");
 
   return (
     <group {...props} dispose={null}>
@@ -47,12 +34,6 @@ export default function Model(props) {
             toneMapped={false}
           />
         </mesh>
-      </Part>
-      <Part id="dark-first" position={FIRST_POSITION} rotation={FIRST_ROTATION}>
-        <mesh
-          geometry={nodes.First_Baked.geometry}
-          material={newMaterials.first_real_realfdsa_Baked}
-        />
       </Part>
     </group>
   );

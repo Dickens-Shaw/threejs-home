@@ -7,6 +7,21 @@ const LIST_Y = 1.2;
 
 const TITLE_RULES = [
   [/^Piano/, "电子琴"],
+  [/^Clock/, "时钟"],
+  [/^Pegboard/, "洞洞板"],
+  [/^Window/, "窗户"],
+  [/^Shelf/, "层架"],
+  [/^Monitor/, "显示器"],
+  [/^Computer_Fourth/, "电脑"],
+  [/^Keyboard_Fourth/, "键盘"],
+  [/^Chair_Fourth/, "办公椅"],
+  [/^Cabinet/, "抽屉柜"],
+  [/^Stool/, "木凳"],
+  [/^Desk/, "书桌"],
+  [/^Name_Sign/, "名字牌"],
+  [/^Rug/, "地毯"],
+  [/^Fish_Bowl$/, "鱼缸"],
+  [/^String_Lights/, "串灯"],
   [/^(First|Second|Third|Fourth)$/, "房间主体"],
   [/^Screen$/, "屏幕"],
   [/^Computer_Glass$/, "电脑玻璃"],
@@ -87,14 +102,16 @@ function textureSet(name) {
 function assetKind(name) {
   if (/^(First|Second|Third|Fourth)$/.test(name)) return "结构";
   if (/^Piano/.test(name)) return "钢琴";
-  if (/Screen/.test(name)) return "屏幕";
+  if (/^Clock/.test(name)) return "时钟";
+  if (/^Monitor|^Screen/.test(name)) return "屏幕";
+  if (/^Fish_Bowl$/.test(name)) return "玻璃";
   if (/Water/.test(name)) return "水体";
   if (/Glass|Bubble/.test(name)) return "玻璃";
   if (/Keyboard/.test(name)) return "键盘";
   if (/Key/.test(name)) return "钢琴";
   if (/Button|Hanging_Plank/.test(name)) return "木牌";
   if (/Hour_Hand|Minute_Hand/.test(name)) return "时钟";
-  if (/Chair|Coffee|Fan|Lamp|Headphones|Microphone|Book|Box|Pencil|Slipper|Frame|Name_Platform/.test(name)) {
+  if (/Chair|Coffee|Fan|Lamp|Headphones|Microphone|Book|Box|Pencil|Slipper|Frame|Name_Platform|Name_Sign|Window|Cabinet|Stool|Desk|Computer_Fourth|Pegboard|Shelf/.test(name)) {
     return "家具";
   }
   return "装饰";
@@ -103,7 +120,7 @@ function assetKind(name) {
 function triangleCount(object) {
   let count = 0;
   object.traverse((child) => {
-    if (!child.isMesh || !child.geometry) return;
+    if (!child.isMesh || !child.geometry || child.userData.contactShadow) return;
     const index = child.geometry.getIndex();
     if (index) {
       count += index.count / 3;

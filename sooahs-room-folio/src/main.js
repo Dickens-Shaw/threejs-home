@@ -8,6 +8,8 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 import { createAssetViews } from "./asset-views.js";
 import { assemblePiano } from "./assemblePiano.js";
+import { assembleCatalog } from "./assembleCatalog.js";
+import { attachContactShadows } from "./contactShadows.js";
 import smokeVertexShader from "./shaders/smoke/vertex.glsl";
 import smokeFragmentShader from "./shaders/smoke/fragment.glsl";
 import themeVertexShader from "./shaders/theme/vertex.glsl";
@@ -444,11 +446,25 @@ loader.load("/models/Room_Portfolio.glb", (glb) => {
   });
 
   const piano = assemblePiano(glb.scene);
-  const listed = piano
-    ? meshes.filter((mesh) => !piano.keys.has(mesh)).concat(piano.group)
-    : meshes;
+  const catalog = assembleCatalog(glb.scene);
+  if (fish) fish.userData.initialPosition = fish.position.clone();
+  catalog.groups.forEach((group) => {
+    const hitbox = createStaticHitbox(group);
+    if (hitbox === group) return;
+    scene.add(hitbox);
+    raycasterObjects.push(hitbox);
+    hitboxToObjectMap.set(hitbox, group);
+  });
+  const listed = meshes
+    .filter((mesh) => !(piano && piano.keys.has(mesh)) && !catalog.consumed.has(mesh))
+    .concat(piano ? [piano.group] : [], catalog.groups);
 
   scene.add(glb.scene);
+  attachContactShadows({
+    root: glb.scene,
+    textures: loadedTextures,
+    materials: roomMaterials,
+  });
   assetViews.setMeshes(listed);
 });
 

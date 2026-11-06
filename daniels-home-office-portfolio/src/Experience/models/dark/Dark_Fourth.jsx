@@ -7,8 +7,6 @@ import { useGLTFWithKTX2 } from "../../utils/useGLTFWithKTX2";
 import { convertMaterialsToBasic } from "../../utils/convertToBasic";
 import Part from "../../parts/Part";
 
-const FOURTH_POSITION = [-0.356, 0 - 0.02, 1.362];
-const FOURTH_ROTATION = [Math.PI, 0, Math.PI];
 const CHAIR_POSITION = [-0.373, 0.735 - 0.02, 1.304];
 const CHAIR_ROTATION = [Math.PI, -0.121, Math.PI];
 
@@ -21,16 +19,6 @@ export default function Model(props) {
 
   return (
     <group {...props} dispose={null}>
-      <Part
-        id="dark-fourth"
-        position={FOURTH_POSITION}
-        rotation={FOURTH_ROTATION}
-      >
-        <mesh
-          geometry={nodes.Fourth_Baked.geometry}
-          material={newMaterials.Fourth_Real_Real_Texture_Set_Baked}
-        />
-      </Part>
       <Part id="dark-chair" position={CHAIR_POSITION} rotation={CHAIR_ROTATION}>
         <mesh
           geometry={nodes.Chair_Top_Fourth_Baked.geometry}
