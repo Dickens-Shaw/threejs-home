@@ -220,6 +220,37 @@ function furnSVG(t,w,d,c, parts){
       for (let i = 1; i < 7; i++) s += ln(x+w*i/7,y,x+w*i/7,y+d,'opacity=".45"');
       return s;
     }
+    case 'keyboard': return rc(x,y,w,d,c,'rx="12"') + ln(x+w*.08,y+d*.3,x+w*.92,y+d*.3) + ln(x+w*.08,y+d*.55,x+w*.92,y+d*.55);
+    case 'mouse': return ec(0,0,w*.4,d*.42,c);
+    case 'mousepad': return rc(x,y,w,d,c,'rx="20" fill-opacity=".85"');
+    case 'phone': return rc(x+w*.12,y+d*.08,w*.76,d*.84,'#1d1d1f','rx="16"') + rc(x+w*.2,y+d*.18,w*.6,d*.58,c,'rx="8"');
+    case 'penholder': return ec(0,0,w*.4,d*.4,c) + ln(0,-d*.05,0,d*.35);
+    case 'organizer': return rc(x,y,w,d,c,'rx="8"') + ln(x+w*.33,y,x+w*.33,y+d) + ln(x+w*.66,y,x+w*.66,y+d);
+    case 'deskset': return ec(-w*.22,0,w*.16,d*.28,c) + ec(w*.12,-d*.04,w*.12,d*.16,'#e7e4de') + rc(-w*.05,d*.12,w*.4,d*.22,'#c9d7ea','rx="8"');
+    case 'slippers': return ec(-w*.22,0,w*.2,d*.32,c) + ec(w*.22,0,w*.2,d*.32,c);
+    case 'underbox': return rc(x,y,w,d,c,'rx="10"') + rc(x+w*.12,y+d*.18,w*.76,d*.64,'none');
+    case 'painting': return rc(x,y,w,d,shade(c,.75)) + rc(x+w*.12,y+d*.15,w*.76,d*.7,'#f3d7d2');
+    case 'wallcloth': return rc(x,y,w,d,c) + ln(x,y+8,x+w,y+8);
+    case 'wallshelf': return rc(x,y,w,d,c) + ln(x+36,y,x+36,y+d) + ln(x+w-36,y,x+w-36,y+d);
+    case 'clock': return ec(0,0,Math.min(w,d)*.46,Math.min(w,d)*.46,c) + ln(0,0,0,-Math.min(w,d)*.2);
+    case 'guitar': return ec(0,d*.12,w*.4,d*.3,c) + rc(-w*.08,y,w*.16,d*.5,shade(c,.8),'rx="8"');
+    case 'books': return rc(x,y,w,d*.28,'#b88a6a') + rc(x,y+d*.28,w,d*.24,'#6f8f8a') + rc(x,y+d*.52,w,d*.24,'#d9c08c') + rc(x,y+d*.76,w,d*.24,'#a8675e');
+    case 'camera': return rc(x,y+d*.2,w*.7,d*.6,c,'rx="8"') + ec(w*.12,0,w*.16,d*.2,'#111');
+    case 'controller': return rc(-w*.15,-d*.15,w*.3,d*.4,c,'rx="12"') + ec(-w*.28,d*.05,w*.16,d*.26,c) + ec(w*.28,d*.05,w*.16,d*.26,c);
+    case 'desklamp': return ec(0,d*.05,w*.26,d*.26,'#fff6dd') + ln(0,y,0,0);
+    case 'stool': return ec(0,0,w*.4,d*.4,c);
+    case 'fishtank': return rc(x+10,y+10,w-20,d-20,'#d5e7ef',DASH) + rc(x,y,w,d,'none');
+    case 'flowerbasket': return ec(0,d*.08,w*.34,d*.28,c) + ec(-w*.1,-d*.18,w*.1,d*.1,'#e7a0c4');
+    case 'plush': return ec(0,0,w*.4,d*.4,c);
+    case 'rock': return ec(-w*.08,0,w*.26,d*.2,'#cfc8be') + ec(w*.16,d*.04,w*.16,d*.14,'#b7b1a6');
+    case 'reed': return ec(0,d*.15,w*.18,d*.18,'#6b4a32') + ln(0,0,-w*.12,-d*.3) + ln(0,0,w*.1,-d*.32);
+    case 'milktea': return ec(0,d*.08,w*.34,d*.32,c) + ec(0,-d*.2,w*.1,d*.1,'#f4f1ea');
+    case 'egg': return ec(0,0,w*.34,d*.4,c);
+    case 'cubes': return rc(-w*.46,-d*.35,w*.26,d*.6,c,'rx="6"') + rc(-w*.08,-d*.25,w*.24,d*.45,'#f0c3d0','rx="6"') + rc(w*.2,-d*.15,w*.22,d*.32,'#d7c2ee','rx="6"');
+    case 'plaque': return rc(x,y,w,d*.28,c,'rx="6"') + rc(x,y+d*.36,w,d*.28,c,'rx="6"') + rc(x,y+d*.72,w,d*.28,c,'rx="6"');
+    case 'shelfdecor': return ec(-w*.18,0,w*.14,d*.28,c) + rc(w*.02,-d*.25,w*.28,d*.5,'#c9b8a4');
+    case 'drawerchest': return rc(x,y,w,d,c,'rx="12"') + ln(x+12,y+d*.33,x+w-12,y+d*.33) + ln(x+12,y+d*.66,x+w-12,y+d*.66);
+    case 'controldeck': return rc(x,y,w,d,c,'rx="10"') + ec(-w*.2,0,w*.08,d*.12,'#1d1d1f') + ec(0,0,w*.08,d*.12,'#1d1d1f') + ec(w*.2,0,w*.08,d*.12,'#1d1d1f');
     default: return rc(x,y,w,d,c);
   }
 }

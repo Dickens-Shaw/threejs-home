@@ -871,7 +871,7 @@
   }
  ],
  "underlay": {
-  "image": "/Users/worker/Desktop/projects/threejs-home/floorplan-3d/standard_1784555545922.jpeg",
+  "image": "../../floorplan-3d/standard_1784555545922.jpeg",
   "mmPerPx": 18.2965,
   "x": -5251,
   "y": -1866

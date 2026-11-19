@@ -142,17 +142,31 @@ const CYL_AC = [
 const LIB = [
   {cat:'桌椅', items:[
     ['gamedesk','电竞桌',1600,750,'#34383f'],['gamedesk','加长电竞桌',1800,800,'#34383f'],['ldesk','L 形电竞桌',1800,1500,'#34383f'],
-    ['gamechair','电竞椅',680,700,'#3a3f46']]},
+    ['gamechair','电竞椅',680,700,'#3a3f46'],['stool','木凳',360,360,'#d8c2a2'],['drawerchest','抽屉柜',400,380,'#f4f1ea'],
+    ['keyboard','键盘',440,160,'#2b2b2d'],['coffeetable','茶几',1100,600,'#d8c2a2'],['sidetable','边桌',500,500,'#34383f']]},
   {cat:'屏幕', items:[
     ['monitor','27 寸显示器',620,240,'#1d1d1f'],['ultrawide','34 寸带鱼屏',900,250,'#1d1d1f'],['dualmon','双屏',1280,250,'#1d1d1f'],
-    ['tv','65 寸电视',1450,80,'#1d1d1f'],['tv','55 寸电视',1230,80,'#1d1d1f']]},
+    ['tv','65 寸电视',1450,80,'#1d1d1f'],['tv','55 寸电视',1230,80,'#1d1d1f'],['phone','手机',80,160,'#1d1d1f']]},
   {cat:'外设', items:[
     ['pctower','机箱',240,480,'#2c3036'],['console','游戏主机',400,280,'#1d1d1f'],['deskspeaker','桌面音箱',180,160,'#2b2b2d'],
-    ['micarm','麦克风悬臂',420,360,'#3a3d42'],['headset','耳机支架',180,180,'#34383f'],['ledbar','灯带',1400,50,'#1d1d1f']]},
+    ['micarm','麦克风悬臂',420,360,'#3a3d42'],['headset','耳机',180,180,'#34383f'],['ledbar','灯带',1400,50,'#1d1d1f'],
+    ['floorlamp','落地灯',450,450,'#2a2c30'],['desklamp','台灯',180,180,'#f4f1ea'],
+    ['mouse','鼠标',70,120,'#e8e8ea'],['mousepad','鼠标垫',300,250,'#2b2b2d'],['controldeck','控制板',180,120,'#f4f1ea']]},
   {cat:'装饰', items:[
-    ['figurecab','手办柜',900,400,'#24282e'],['rug','电竞地毯',1600,1200,'#4a4f55'],
+    ['figurecab','手办柜',900,400,'#24282e'],['bookshelf','书架',800,350,'#d8c2a2'],['cabinet','矮柜',1200,400,'#d8c2a2'],['tvstand','电视柜',1800,400,'#d8c2a2'],
+    ['rug','电竞地毯',1600,1200,'#4a4f55'],
     ['plant','绿植',500,500,'#a9c39b'],['plant','大绿植',700,700,'#9dbb8c'],
-    ['acoustic','吸音板',1200,60,'#4a4f55'],['pegboard','洞洞板',1000,40,'#d8c2a2'],['curtain','遮光帘',1800,90,'#3d3a34']]},
+    ['acoustic','吸音板',1200,60,'#4a4f55'],['pegboard','洞洞板',1000,40,'#d8c2a2'],['curtain','遮光帘',1800,90,'#3d3a34'],
+    ['beanbag','懒人沙发',780,780,'#6b5d4c'],
+    ['penholder','笔筒',100,100,'#f4f1ea'],['organizer','桌面收纳',260,90,'#f4f1ea'],['deskset','桌面小件',220,160,'#f4f1ea'],
+    ['slippers','拖鞋',260,140,'#c4a882'],['underbox','桌下盒',280,200,'#d8c2a2'],
+    ['painting','挂画',800,40,'#f4f1ea'],['wallcloth','挂布',600,50,'#f7f4ee'],['wallshelf','壁架',900,200,'#d8c2a2'],
+    ['clock','时钟',400,50,'#d8c2a2'],['guitar','吉他',450,160,'#1f1d1b'],['books','书',200,160,'#c9b8a4'],
+    ['camera','相机',140,90,'#1d1d1f'],['controller','手柄',160,100,'#1d1d1f'],
+    ['fishtank','鱼缸',320,320,'#d5e7ef'],['flowerbasket','花篮',240,240,'#e0b090'],['plush','圆偶',320,320,'#f0c3d0'],
+    ['rock','石头',420,280,'#cfc8be'],['reed','水草',200,160,'#7ea86a'],
+    ['milktea','奶茶杯',90,90,'#f0c3d0'],['egg','彩蛋',90,110,'#f6ebe6'],['cubes','小方块',200,80,'#e0b090'],
+    ['plaque','空白木牌',320,40,'#e0b090'],['shelfdecor','架上摆件',200,160,'#d8c2a2']]},
   {cat:'坐卧', items:[
     ['bed','单人床',1200,2000,'#e8d5b5'],['sofa','双人沙发',1700,880,'#c3cbd6']]},
   {cat:'家电', items:[
@@ -938,6 +952,7 @@ function loadLibrary(){
   }
   if (!Array.isArray(lib.rooms)) lib.rooms = lib.plans.map(p => roomFromPlan(p));
   lib.rooms = lib.rooms.filter(r => !defaultBeikeRoom(r));
+  dropStylePlans(lib);
   if (!lib.plans.some(p => p.id === lib.activeId)) lib.activeId = lib.plans[0].id;
   lib.plans.forEach(normalizePlan);
   lib.rooms.forEach(normalizePlan);
@@ -949,6 +964,11 @@ function stockBeikePlan(plan){
 function defaultBeikeRoom(room){
   if (!room || room.id === 'pmw2wiisq20') return false;
   return room.sourceId === 'beike-3br' && !(room.bays || []).length && (room.furniture || []).length < 20;
+}
+function dropStylePlans(lib){
+  const ids = new Set(['style-daniel-light', 'style-daniel-dark', 'style-bruno', 'style-sooah']);
+  lib.plans = (lib.plans || []).filter(p => !ids.has(p.id));
+  if (Array.isArray(lib.rooms)) lib.rooms = lib.rooms.filter(r => !ids.has(r.id) && !ids.has(r.sourceId));
 }
 function dropDefaultBeike(lib){
   lib.plans = (lib.plans || []).filter(p => !stockBeikePlan(p));

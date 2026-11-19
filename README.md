@@ -18,7 +18,7 @@
 
 **`house-plan-designer` 基于本仓库的 skill：`.cursor/skills/house-plan-designer`。**
 
-这个 skill 按 [SKILL.md](.cursor/skills/house-plan-designer/SKILL.md) 工作：读户型图或 CAD，写出 HouseSpec，再用 `scripts/build.py` 把 spec 注入 `assets/template.html`，得到双击可开的单文件 HTML。本目录里的 `spec.json`、`gen.py`、`check.html`、`analysis/`、`check/`、`qa/`、`audit/` 都是按这条流程，为贝壳「三室一厅一卫」户型图生成的结果。`floorplan-3d/三室一厅-装修设计器.html` 与 `house-plan-designer/check.html` 是同一次注入的产物，属于设计器，不属于 wy51ai 的编辑器源码。
+这个 skill 按 [SKILL.md](.cursor/skills/house-plan-designer/SKILL.md) 工作：读户型图或 CAD，写出 HouseSpec，再用 `scripts/build.py` 把 spec 注入 `assets/template.html`，得到双击可开的单文件 HTML。`beike-3br/` 里的 `spec.json`、`gen.py`、`check.html`、`analysis/`、`check/`、`qa/`、`audit/` 都是按这条流程，为贝壳「三室一厅一卫」户型图生成的结果。`floorplan-3d/三室一厅-装修设计器.html` 与 `house-plan-designer/beike-3br/check.html` 是同一次注入的产物，属于设计器，不属于 wy51ai 的编辑器源码。
 
 该 skill 自身（含模板和脚本）来自 [ZWD11/house-plan-designer](https://github.com/ZWD11/house-plan-designer)，MIT 许可，Copyright (c) 2026 ZWD11。skill 说明见 [.cursor/skills/house-plan-designer/README.md](.cursor/skills/house-plan-designer/README.md)，许可原文在 [.cursor/skills/house-plan-designer/LICENSE](.cursor/skills/house-plan-designer/LICENSE)。模板由上游设计器打包而来；按 skill 的约定，不在本仓库里改 `assets/template.html`。设计器功能有变时，在上游项目执行 `npm run skill:sync`，再同步到本 skill。
 
@@ -62,35 +62,39 @@ npm run dev
 
 ## house-plan-designer
 
-打开 [`house-plan-designer/check.html`](house-plan-designer/check.html) 即可使用已生成的「三室一厅一卫」设计器。文件内嵌户型、底图和三维运行时，离线可用。界面包含二维平面、分屏、三维漫游，以及布置、水电、顶面、铺装、拆改图层，并可导出报价、DXF 和施工图。
+打开 [`house-plan-designer/beike-3br/check.html`](house-plan-designer/beike-3br/check.html) 即可使用已生成的「三室一厅一卫」设计器。文件内嵌户型、底图和三维运行时，离线可用。界面包含二维平面、分屏、三维漫游，以及布置、水电、顶面、铺装、拆改图层，并可导出报价、DXF 和施工图。
 
 重新生成这一份 HTML：
 
 ```bash
 python .cursor/skills/house-plan-designer/scripts/build.py \
-  house-plan-designer/spec.json \
-  -o house-plan-designer/check.html
+  house-plan-designer/beike-3br/spec.json \
+  -o house-plan-designer/beike-3br/check.html
 ```
 
 几何和尺寸自查、全功能验收：
 
 ```bash
 node .cursor/skills/house-plan-designer/scripts/check.mjs \
-  house-plan-designer/check.html house-plan-designer/check
+  house-plan-designer/beike-3br/check.html house-plan-designer/beike-3br/check
 
 node .cursor/skills/house-plan-designer/scripts/qa.mjs \
-  house-plan-designer/check.html house-plan-designer/qa --lite --quick
+  house-plan-designer/beike-3br/check.html house-plan-designer/beike-3br/qa --lite --quick
 ```
 
 skill 的 Python 依赖：`numpy`、`pillow`、`opencv-python`、`pymupdf`、`ezdxf`、`pypdf`。验收脚本在 skill 的 `scripts/` 下执行 `npm install`（只安装 `puppeteer-core`），浏览器由 `scripts/browser.mjs` 查找本机 Chrome / Edge / Chromium。
 
 换一张图时，按 skill 重写 spec 和生成脚本，不要手改 `check.html`，也不要改模板。HouseSpec 字段见 [.cursor/skills/house-plan-designer/reference/spec-format.md](.cursor/skills/house-plan-designer/reference/spec-format.md)。
 
-本目录里和这次户型有关的文件：
+## house-plan-designer
+
+一套户型一个子目录，互不覆盖。`beike-3br/` 是贝壳「三室一厅一卫」那次的产物；新户型另开目录（如 `house-plan-designer/<新户型名>/`），`spec.json`、`gen.py`、`check.html` 和各验收目录都放在自己目录里。
+
+各目录里的文件：
 
 | 文件 | 作用 |
 | --- | --- |
-| `gen.py` | 按贝壳户型图的尺寸链写出 spec |
+| `gen.py` | 按户型图的尺寸链写出 spec |
 | `spec.json` | HouseSpec |
 | `check.html` | 注入模板后的设计器 |
 | `analysis/`、`analysis2/` | 识图草稿 |
@@ -98,9 +102,17 @@ skill 的 Python 依赖：`numpy`、`pillow`、`opencv-python`、`pymupdf`、`ez
 | `qa/`、`qa-furn/`、`qa-walk/` | 界面验收和导出文件 |
 | `audit/` | 墙体对账 |
 
+`gen.py` 的底图和输出路径都按脚本自身位置算（`os.path.dirname(__file__)`），换机器不用改；也可以用命令行参数指定输出：
+
+```bash
+cd house-plan-designer/<新户型名>
+python gen.py spec.json
+python ../../.cursor/skills/house-plan-designer/scripts/build.py spec.json -o check.html
+```
+
 ## 许可
 
 两套代码分别遵守各自上游的 MIT 许可。再分发时保留对应的版权与许可声明。
 
 - `floorplan-3d/` 与从中分出的 `esports-room/`：Copyright (c) 2026 wuyi。[floorplan-3d/LICENSE](floorplan-3d/LICENSE)、[esports-room/LICENSE](esports-room/LICENSE)。上游仓库 [wy51ai/floorplan-3d](https://github.com/wy51ai/floorplan-3d)。
-- `.cursor/skills/house-plan-designer/` 以及由它生成的 `house-plan-designer/check.html`、`floorplan-3d/三室一厅-装修设计器.html`：Copyright (c) 2026 ZWD11。[.cursor/skills/house-plan-designer/LICENSE](.cursor/skills/house-plan-designer/LICENSE)。上游仓库 [ZWD11/house-plan-designer](https://github.com/ZWD11/house-plan-designer)。
+- `.cursor/skills/house-plan-designer/` 以及由它生成的 `house-plan-designer/beike-3br/check.html`、`floorplan-3d/三室一厅-装修设计器.html`：Copyright (c) 2026 ZWD11。[.cursor/skills/house-plan-designer/LICENSE](.cursor/skills/house-plan-designer/LICENSE)。上游仓库 [ZWD11/house-plan-designer](https://github.com/ZWD11/house-plan-designer)。

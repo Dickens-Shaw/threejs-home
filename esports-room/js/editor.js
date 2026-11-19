@@ -1,5 +1,5 @@
 /* ======================= 渲染 ======================= */
-const NOLABEL = ['plant','floorlamp','sidetable','barstool','beanbag'];
+const NOLABEL = ['plant','floorlamp','sidetable','barstool','beanbag','reed','flowerbasket','penholder','milktea','egg'];
 function renderRooms(){
   let s = '';
   ROOMS.forEach(r => s += `<polygon class="room" data-room="${r.id}" points="${r.poly.map(p=>p.join(',')).join(' ')}" fill="url(#m-${state.rooms[r.id].mat})"/>`);
@@ -223,6 +223,7 @@ function updateHeader(){
   const scaleNote = state.presetDims ? tr(' · 原图比例 1:60', ' · Original scale 1:60') : '';
   $('#planTitle').textContent = nm(state.name || '未命名户型');
   $('#subtitle').textContent = tr(`套内使用面积约 ${fmt(tot)} m² · 尺寸单位 mm`, `Net floor area ≈ ${fmt(tot)} m² · Units: mm`) + scaleNote;
+  syncStylePick();
   syncSaveBtn();
   $('#undo').disabled = !undoStack.length; $('#redo').disabled = !redoStack.length;
   $('#undo').style.opacity = undoStack.length ? 1 : .4; $('#redo').style.opacity = redoStack.length ? 1 : .4;
@@ -236,7 +237,7 @@ function renderPanel(){
   const p = $('#panel');
   if (typeof isPreview === 'function' && isPreview()){
     if (studioFurn){ p.innerHTML = furnPanel(studioFurn); bindFurnPanel(studioFurn); return; }
-    p.innerHTML = `<section><h3>${tr('家具预览', 'Furniture preview')}</h3><p class="muted">${tr('从左侧点一件家具。这里只看这一件，不会放进户型。', 'Pick a piece on the left. Only this piece is shown, and it is not added to the plan.')}</p></section>`;
+    p.innerHTML = `<section><h3>${tr('家具预览', 'Furniture preview')}</h3><p class="muted">${tr('从左侧点一件家具。同一件会并排画出五种风格，不会放进户型。', 'Pick a piece on the left. The same piece is shown in all five styles, and it is not added to the plan.')}</p></section>`;
     return;
   }
   if (ui.sel?.kind === 'furn'){ const f = getF(ui.sel.id); if (f){ p.innerHTML = furnPanel(f); bindFurnPanel(f); return; } }
@@ -268,6 +269,7 @@ function overviewPanel(){
   <section><h3>${tr('地面材料估算','Flooring Estimate')} <small>${tr('含 5% 损耗','incl. 5% waste')}</small></h3>
     <table>${matRows}</table>
     <div class="total"><span>${tr('地面材料合计','Flooring total')}</span><b>¥${Math.round(cost).toLocaleString()}</b></div></section>
+  ${billSection()}
   <section><h3>${tr('方案统计','Plan Stats')}</h3>
     <div class="stats">${editing ? '' : `<div><small>${tr('家具数量','Furniture')}</small><span class="big">${state.furniture.length}</span></div>`}
       <div><small>${tr('拆除墙体','Walls removed')}</small><span class="big">${fmt(demLen,1)}</span> m</div></div>
@@ -1076,10 +1078,10 @@ function syncTip(){
 const TIPS = () => COARSE
   ? {'2d':tr('点或拖动家具库添加 · 单指拖动平移 · 双指缩放 · 选中家具后底部工具条可旋转 / 复制 / 删除', 'Tap or drag from the library · 1 finger pans · pinch zooms · bottom bar rotates / duplicates / deletes'),
      '3d':tr('单指旋转 · 双指缩放 / 平移 · 点家具或地面编辑 · 点门开关', '1 finger orbits · 2 fingers zoom / pan · tap furniture or floor to edit · tap doors to open'),
-     'preview':tr('拖动旋转查看这件家具 · 左侧点一件换上看', 'Drag to orbit this piece · pick another from the library')}
+     'preview':tr('同一件家具并排五种风格 · 左侧点一件换上看', 'One piece, five styles side by side · pick another from the library')}
   : {'2d':tr('拖动左侧家具到平面图 · 滚轮缩放 · 拖动空白处平移 · T 切换 3D', 'Drag furniture onto the plan · scroll to zoom · drag empty space to pan · T for 3D'),
-     '3d':tr('3D 场景与平面方案实时同步 · 右侧面板修改会立即生效 · T 返回 2D', '3D stays in sync with the plan · panel edits apply instantly · T for 2D'),
-     'preview':tr('拖动旋转查看这件家具 · 左侧点一件换上看 · 右侧改尺寸和颜色', 'Drag to orbit this piece · pick another from the library · edit size and color on the right')};
+     '3d':tr('3D 场景与平面方案实时同步 · 风格只改外观，不改这一套摆放 · T 返回 2D', '3D stays in sync with the plan · style changes the look, not the layout · T for 2D'),
+     'preview':tr('同一件家具并排五种风格 · 左侧点一件换上看 · 右侧改的是这一套数据', 'One piece, five styles side by side · pick another from the library · the right panel edits the one shared record')};
 async function setView(m){
   if (m === viewMode || switching) return;
   if (m === '3d' && tab !== 'decor') return;
@@ -1312,7 +1314,7 @@ function renderGate(){
     : tr('电竞屋搭建', 'Battlestation');
   $('#gateHint').textContent = plan
     ? tr('点一间屋子，改墙、门和窗。预设可以复制后再改。', 'Open a room to edit walls, doors and windows. Duplicate a preset before changing it.')
-    : tr('点一间电竞屋开始摆。显示器、音箱和麦克风按桌面高度来画，放在桌子范围内。', 'Open a room to furnish it. Monitors, speakers and the mic sit at desk height, so place them on the desk.');
+    : tr('点一间电竞屋开始摆。编辑的是一套数据。三维里可以换风格看，家具预览会把五种风格并排摆出来。', 'Open a room to furnish it. You edit one layout. 3D can restyle it, and furniture preview shows all five styles side by side.');
   $('#homeNew').hidden = false;
   $('#homeNew').textContent = plan ? tr('新增户型', 'New plan') : tr('新增房间', 'New room');
   const root = $('#gateList');
@@ -1808,6 +1810,35 @@ $('#packFile').onchange = e => {
 };
 $('#roomPickClose').onclick = () => { $('#roomPick').hidden = true; };
 $('#roomPick').onclick = e => { if (e.target === $('#roomPick')) $('#roomPick').hidden = true; };
+
+function billSection(){
+  if (editing || typeof billOf !== 'function') return '';
+  const groups = billOf(state.furniture);
+  if (!groups.length) return `<section><h3>${tr('物料清单','Bill of materials')}</h3><p class="muted">${tr('这间还没有家具。从左侧家具库拖进来。', 'This room has no furniture yet. Drag pieces in from the library.')}</p></section>`;
+  const body = groups.map(g => {
+    const rows = g.rows.map(r => `<tr><td><span class="sw" style="background:${r.color || '#ccc'}"></span>${esc(r.name)}</td><td class="r">${r.n}</td><td class="r">${r.w}×${r.d}</td></tr>`).join('');
+    return `<tr><td colspan="3"><b>${esc(g.cat)}</b></td></tr>${rows}`;
+  }).join('');
+  return `<section><h3>${tr('物料清单','Bill of materials')} <small>${state.furniture.length}</small></h3>
+    <table><thead><tr><td>${tr('物品','Item')}</td><td class="r">${tr('数量','Qty')}</td><td class="r">${tr('宽×深','W×D')}</td></tr></thead><tbody>${body}</tbody></table>
+    <p class="muted" style="margin:8px 0 0">${tr('分类与左侧家具库一致，尺寸是毫米。这是这一套摆放，换风格不会另记一份。', 'Categories match the library. Sizes are millimetres. This is the one layout; changing style does not store another copy.')}</p></section>`;
+}
+function syncStylePick(){
+  const el = $('#stylePick');
+  if (!el || typeof ROOM_STYLES === 'undefined') return;
+  if (!el.dataset.ready){
+    el.dataset.ready = '1';
+    el.innerHTML = Object.values(ROOM_STYLES).map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+    el.onchange = () => applyPreviewStyle(el.value);
+  }
+  const id = typeof previewStyle === 'string' && ROOM_STYLES[previewStyle] ? previewStyle : 'station';
+  if (el.value !== id) el.value = id;
+}
+function applyPreviewStyle(id){
+  if (typeof setPreviewStyle !== 'function' || !ROOM_STYLES[id] || previewStyle === id) return;
+  setPreviewStyle(id);
+  window.View3D?.sync();
+}
 
 applyStaticLang(); syncFullscreen();
 buildDefs(); mountFurnExtra(); buildLib(); buildDrawLib(); renderOpenings(); renderDims();

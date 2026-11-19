@@ -185,8 +185,15 @@ const rot = (o, x = 0, y = 0, z = 0) => { o.rotation.set(x, y, z); return o; };
 function box(w, h, d, m, x = 0, y = 0, z = 0){
   const o = mesh(new THREE.BoxGeometry(w, h, d), m); o.position.set(x, y + h/2, z); return o;
 }
+function roomLook(){
+  const id = typeof activeStyleId === 'function' ? activeStyleId() : 'station';
+  const table = typeof ROOM_STYLES !== 'undefined' ? ROOM_STYLES : null;
+  return (table && (table[id] || table.station)) || {wall:'#f4f1eb', ceil:'#fbfaf7', frame:'#5d6166', bg:'#f7f4ee', ground:'#f2eee7', sun:1, hemi:1, exposure:1.05, round:1, screen:'#163044', walls:{}, wallRough:.92};
+}
 function rbox(w, h, d, m, x = 0, y = 0, z = 0, r = .04){
-  const o = mesh(new RoundedBoxGeometry(w, h, d, 3, Math.min(r, w/2-.001, h/2-.001, d/2-.001)), m); o.position.set(x, y + h/2, z); return o;
+  const k = roomLook().round || 1;
+  const rr = Math.max(.001, Math.min(r * k, w/2-.001, h/2-.001, d/2-.001));
+  const o = mesh(new RoundedBoxGeometry(w, h, d, 3, rr), m); o.position.set(x, y + h/2, z); return o;
 }
 function cyl(rt, rb, h, m, x = 0, y = 0, z = 0, seg = 28){
   const o = mesh(new THREE.CylinderGeometry(rt, rb, h, seg), m); o.position.set(x, y + h/2, z); return o;
@@ -342,12 +349,13 @@ function drawCustomFurniture(g, f, parts){
   });
   if (!g.children.length) g.add(box(fw, .8, fd, color));
 }
-function deskPanel(g, x, z, sw, sh){
+function deskPanel(g, x, z, sw, sh, bezel, glow){
   const y0 = .76;
-  g.add(cyl(.08, .085, .014, blackMetal(), x, y0, z + .05, 24));
-  g.add(box(.026, .1, .026, blackMetal(), x, y0, z + .03));
-  g.add(rbox(sw, sh, .018, mat('#18181a', {roughness:.4, metalness:.35}), x, y0 + .1, z, .004));
-  const scr = box(sw - .024, sh - .03, .004, screenMat('#163044'), x, y0 + .114, z + .01);
+  const frame = mat(bezel || '#18181a', {roughness:.4, metalness:.25});
+  g.add(cyl(.08, .085, .014, frame, x, y0, z + .05, 24));
+  g.add(box(.026, .1, .026, frame, x, y0, z + .03));
+  g.add(rbox(sw, sh, .018, frame, x, y0 + .1, z, .004));
+  const scr = box(sw - .024, sh - .03, .004, screenMat(glow || roomLook().screen || '#163044'), x, y0 + .114, z + .01);
   scr.castShadow = false;
   scr.userData.screen = true;
   g.add(scr, box(Math.min(.12, sw * .18), .004, .003, '#9aa0a6', x, y0 + .104, z + .012));
@@ -719,10 +727,747 @@ window.screenMedia = {
   },
 };
 /* ======================= 家具模型（局部坐标：背面朝 -z） ======================= */
+// 电竞黑沿用原来的模型。库里后加的小件五种风格都在这里画。另外四种去靠近各自 GLB 的轮廓。
+const EXTRA_TYPES = new Set([
+  'keyboard','mouse','mousepad','phone','penholder','organizer','deskset','slippers','underbox',
+  'painting','wallcloth','wallshelf','clock','guitar','books','camera','controller','desklamp',
+  'stool','fishtank','flowerbasket','plush','rock','reed','milktea','egg','cubes','plaque',
+  'shelfdecor','drawerchest','controldeck',
+]);
+function drawExtraPiece(g, f, w, d, c, bz, id){
+  const sooah = id === 'sooah', bruno = id === 'bruno', dark = id === 'daniel-dark', light = id === 'daniel-light', station = id === 'station';
+  const woodHex = sooah ? '#e0b090' : dark ? '#8d5a32' : '#d8c2a2';
+  const wood = woodM(woodHex);
+  const black = mat('#1c1c1e', {roughness: sooah ? .85 : .4, metalness: sooah ? 0 : .45});
+  const cloth = fabric(c);
+  const white = mat(light || sooah ? '#f7f4ee' : '#f4f1ea', {roughness:.62});
+  const screen = (typeof roomLook === 'function' && roomLook().screen) || '#163044';
+  const yDesk = sooah ? .6 : .74;
+  const fat = sooah ? .03 : bruno ? .01 : .006;
+  const seg = bruno ? 6 : sooah ? 14 : 22;
+  const y = yDesk;
+  const disc = (r, h, m, x, cy, z) => {
+    const o = cyl(r, r, h, m, x, cy - h / 2, z, seg);
+    o.rotation.x = Math.PI / 2;
+    return o;
+  };
+  switch (f.type){
+    case 'keyboard': {
+      if (dark){
+        g.add(rbox(w, .01, d, black, 0, y, 0, .003));
+        g.add(rbox(w * .88, .008, d * .7, mat('#2a2a2c', {roughness:.55}), 0, y + .01, -.01, .002));
+        return true;
+      }
+      const base = sooah ? cloth : light ? white : black;
+      const th = sooah ? .03 : bruno ? .02 : .012;
+      g.add(rbox(w, th, d, base, 0, y, 0, fat));
+      const rows = sooah ? 3 : bruno ? 3 : 5, cols = Math.max(6, Math.round(w / (sooah ? .05 : bruno ? .035 : .02)));
+      const key = sooah ? ceramic() : light ? white : mat('#2a2a2c', {roughness:.5});
+      for (let r = 0; r < rows; r++) for (let i = 0; i < cols; i++){
+        const kw = Math.max(.008, w * .88 / cols - .003);
+        g.add(rbox(kw, sooah ? .012 : .006, d * (sooah ? .16 : .1), key, -w * .44 + w * .88 * (i + .5) / cols, y + th, -d * .28 + r * (d * .62 / rows), sooah ? .004 : .001));
+      }
+      return true;
+    }
+    case 'mouse': {
+      if (bruno) g.add(rbox(w * .7, .035, d * .8, black, 0, y, 0, .008));
+      else g.add(blob(w * .32, sooah ? .035 : .018, d * .38, sooah ? cloth : light ? white : black, 0, y + (sooah ? .04 : .02), 0, sooah ? 16 : 18));
+      return true;
+    }
+    case 'mousepad': {
+      g.add(rbox(w, sooah ? .02 : .006, d, sooah ? cloth : dark ? black : light ? white : mat(c, {roughness:.8}), 0, y, 0, fat));
+      if (dark) g.add(rbox(w * .7, .012, d * .22, fabric('#2a2c30'), 0, y + .006, d * .28, .004));
+      return true;
+    }
+    case 'phone': {
+      const shell = sooah ? cloth : light ? white : black;
+      g.add(rbox(w, .008, d, shell, 0, y, 0, fat));
+      const face = box(w * .72, .003, d * .62, screenMat(screen), 0, y + .008, 0);
+      face.castShadow = false; face.userData.screen = true; g.add(face);
+      return true;
+    }
+    case 'penholder': {
+      const cup = sooah || light ? ceramic() : dark ? black : bruno ? ceramic() : mat(c, {roughness:.4});
+      g.add(cyl(w * .32, sooah ? w * .36 : w * .3, sooah ? .12 : .09, cup, 0, y, 0, seg));
+      for (let i = 0; i < (sooah ? 3 : 4); i++){
+        const a = i * 1.4;
+        g.add(rod([Math.sin(a) * .015, y + .04, Math.cos(a) * .015], [Math.sin(a) * .02, y + (sooah ? .16 : .2), Math.cos(a) * .012], .003, black));
+      }
+      return true;
+    }
+    case 'organizer': {
+      const body = sooah ? cloth : dark ? black : white;
+      const h = sooah ? .16 : .22;
+      g.add(rbox(w, h, d, body, 0, y, 0, fat));
+      const n = bruno ? 2 : 3;
+      for (let i = 1; i < n; i++) g.add(box(.008, h * .8, d * .8, sooah ? wood : black, -w / 2 + w * i / n, y + .02, 0));
+      return true;
+    }
+    case 'deskset': {
+      const tray = light ? fabric('#c9d7ea') : sooah ? cloth : dark ? black : white;
+      g.add(rbox(w * .7, sooah ? .03 : .012, d * .45, tray, w * .1, y, d * .1, fat));
+      if (bruno){
+        g.add(box(w * .16, .16, d * .16, white, -w * .22, y, 0), box(w * .14, .08, d * .14, fabric('#e07a2f'), w * .05, y + .012, -.02));
+      } else if (sooah){
+        g.add(blob(w * .12, .08, d * .12, ceramic(), -w * .2, y + .08, 0, 14), blob(w * .1, .05, d * .1, wood, .05, y + .06, 0, 12));
+      } else {
+        g.add(cyl(.02, .025, .16, light ? mat('#d5e7ef', {transparent:true, opacity:.55, roughness:.05}) : black, -w * .22, y, 0, 12));
+        g.add(cyl(w * .1, w * .08, .06, ceramic(), .02, y + .012, 0, seg));
+      }
+      return true;
+    }
+    case 'slippers': {
+      const shoe = sooah ? cloth : light ? fabric('#c4a882') : dark ? black : fabric(c);
+      [-1, 1].forEach(s => {
+        if (bruno) g.add(rbox(w * .32, .03, d * .7, shoe, s * w * .22, 0, 0, .008));
+        else g.add(blob(w * .16, sooah ? .04 : .02, d * .32, shoe, s * w * .22, sooah ? .04 : .02, 0, 14));
+      });
+      return true;
+    }
+    case 'underbox': {
+      const body = sooah ? wood : dark ? black : light ? white : wood;
+      const h = sooah ? .16 : .12;
+      g.add(rbox(w, .02, d, body, 0, 0, 0, fat));
+      [-1, 1].forEach(s => g.add(rbox(.02, h, d, body, s * (w / 2 - .01), 0, 0, fat)));
+      g.add(rbox(w, h, .02, body, 0, 0, bz + .01, fat));
+      return true;
+    }
+    case 'painting': {
+      const h = Math.max(.45, w * .7);
+      const frame = sooah || light || bruno ? wood : black;
+      const inner = light ? fabric('#f3d7d2') : dark ? fabric('#3a342c') : bruno ? fabric('#e7a0c4') : sooah ? ceramic() : fabric('#d9cfc2');
+      g.add(rbox(w, h, Math.max(d, sooah ? .05 : .02), frame, 0, 1.15, bz, fat));
+      g.add(box(w * .78, h * .72, .006, inner, 0, 1.15 + h * .08, bz + d * .6));
+      return true;
+    }
+    case 'wallcloth': {
+      const h = sooah ? .7 : 1.1;
+      g.add(rod([-w / 2, 1.7, bz], [w / 2, 1.7, bz], sooah ? .015 : .008, dark ? black : wood));
+      const n = sooah ? 3 : bruno ? 1 : 5;
+      for (let i = 0; i < n; i++){
+        const x = -w / 2 + w * (i + .5) / n;
+        g.add(rbox(w / n * .9, h, sooah ? .04 : .012, sooah ? cloth : light ? white : dark ? black : fabric(c), x, 1.7 - h, bz, fat));
+      }
+      return true;
+    }
+    case 'wallshelf': {
+      const board = sooah || dark || light ? wood : bruno ? wood : wood;
+      if (sooah){
+        g.add(rbox(w, .08, Math.max(d, .12), wood, 0, 1.35, 0, .025));
+        g.add(rbox(w * .55, .06, Math.max(d, .1), wood, -w * .1, 1.05, 0, .02));
+      } else if (bruno){
+        g.add(box(w, .04, Math.max(d, .16), wood, 0, 1.4, 0));
+        g.add(box(w * .4, .28, Math.max(d, .14), white, -w * .22, 1.12, 0));
+      } else if (dark){
+        g.add(box(w, .03, Math.max(d, .16), wood, 0, 1.45, 0));
+        g.add(box(w, .5, .012, woodM(darker(woodHex, .75)), 0, .95, bz));
+      } else {
+        g.add(box(w, .025, Math.max(d, .14), board, 0, 1.4, 0));
+        [-1, 1].forEach(s => g.add(box(.04, .08, .08, board, s * w * .32, 1.32, 0)));
+      }
+      return true;
+    }
+    case 'clock': {
+      const r = Math.min(w, .42) * .48;
+      const faceM = sooah || light ? wood : dark ? chrome() : bruno ? black : mat(c, {roughness:.4});
+      g.add(disc(r, sooah ? .05 : .018, faceM, 0, 1.6, bz));
+      if (!bruno) g.add(disc(r * .22, .012, sooah ? ceramic() : dark ? black : white, 0, 1.6, bz + .02));
+      g.add(box(.012, r * .55, .008, black, 0, 1.6 - .004, bz + .03));
+      g.add(box(r * .42, .012, .008, black, r * .16, 1.6 - .006, bz + .03));
+      return true;
+    }
+    case 'guitar': {
+      const body = sooah ? wood : dark || bruno ? black : wood;
+      g.add(blob(w * .38, sooah ? .16 : .08, d * .42, body, 0, sooah ? .28 : .22, d * .05, bruno ? 8 : 16));
+      g.add(rbox(sooah ? .06 : .035, sooah ? .7 : .85, .03, wood, 0, .35, bz + d * .15, fat));
+      g.add(cyl(.04, .04, .01, ceramic(), 0, sooah ? .3 : .24, d * .2, seg));
+      return true;
+    }
+    case 'books': {
+      const n = sooah ? 3 : bruno ? 4 : 6;
+      const cols = sooah ? ['#f0c3d0', '#d7c2ee', '#f6ebe6'] : ['#b88a6a', '#6f8f8a', '#d9c08c', '#a8675e', '#7d8ea3', '#e6dccd'];
+      const th = sooah ? .035 : .022;
+      for (let i = 0; i < n; i++) g.add(rbox(w * .9, th, d * .88, fabric(cols[i % cols.length]), 0, y + i * th, 0, sooah ? .008 : .002));
+      return true;
+    }
+    case 'camera': {
+      const body = sooah ? cloth : black;
+      g.add(rbox(w * .7, sooah ? .08 : .05, d * .6, body, 0, y, 0, fat));
+      const lens = cyl(w * .16, w * .16, sooah ? .05 : .03, black, w * .12, y + .04, d * .15, seg);
+      lens.rotation.x = Math.PI / 2;
+      g.add(lens);
+      return true;
+    }
+    case 'controller': {
+      const body = sooah ? cloth : black;
+      g.add(rbox(w * .46, sooah ? .04 : .02, d * .4, body, 0, y, 0, fat));
+      [-1, 1].forEach(s => g.add(blob(w * .16, sooah ? .03 : .016, d * .28, body, s * w * .28, y + .02, d * .05, bruno ? 8 : 12)));
+      return true;
+    }
+    case 'desklamp': {
+      if (bruno){
+        g.add(tube([[-w * .1, y, 0], [.05, y + .22, .04], [.12, y + .38, .08]], .01, black));
+        g.add(blob(.08, .035, .1, ceramic(), .14, y + .4, .1, 12));
+      } else if (sooah){
+        g.add(cyl(.06, .07, .03, ceramic(), 0, 0, 0, seg), cyl(.02, .02, .18, ceramic(), 0, .03, 0, 12));
+        g.add(cyl(.09, .1, .08, fabric('#c9d7ea'), 0, .2, 0, seg));
+      } else if (dark){
+        g.add(tube([[0, y, bz], [.1, y + .2, .05], [.16, y + .32, .1]], .008, black));
+        g.add(cyl(.05, .06, .04, fabric('#f3ead8'), .16, y + .3, .1, 16));
+      } else {
+        g.add(rod([0, y, 0], [0, y + .32, 0], .008, light ? wood : black));
+        g.add(cyl(.07, .09, .06, white, 0, y + .32, 0, seg));
+      }
+      return true;
+    }
+    case 'stool': {
+      if (sooah){
+        g.add(cyl(w * .34, w * .3, .08, wood, 0, .28, 0, seg));
+        for (let k = 0; k < 3; k++){
+          const a = k * Math.PI * 2 / 3;
+          g.add(rbox(.06, .28, .06, wood, Math.sin(a) * w * .22, 0, Math.cos(a) * d * .22, .02));
+        }
+      } else if (dark){
+        g.add(cyl(w * .32, w * .32, .025, black, 0, .42, 0, 20));
+        [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => g.add(rod([a * w * .18, 0, b * d * .18], [a * w * .16, .42, b * d * .16], .008, black)));
+      } else if (bruno){
+        g.add(box(w * .72, .08, d * .72, wood, 0, .4, 0));
+        [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => g.add(box(.045, .4, .045, black, a * w * .24, 0, b * d * .24)));
+      } else if (station){
+        g.add(cyl(w * .34, w * .34, .04, black, 0, .42, 0, 24));
+        g.add(cyl(.03, .035, .42, black, 0, 0, 0, 12));
+        g.add(ring(w * .28, .01, black, 0, .08, 0));
+      } else {
+        g.add(cyl(w * .38, w * .38, .05, wood, 0, .42, 0, seg));
+        [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => g.add(rod([a * w * .22, 0, b * d * .22], [a * w * .2, .42, b * d * .22], .012, wood, .016)));
+      }
+      return true;
+    }
+    case 'fishtank': {
+      const stand = sooah || light ? wood : dark ? black : wood;
+      const h = sooah ? .22 : .28;
+      g.add(rbox(w * .8, sooah ? .08 : .04, d * .8, stand, 0, sooah ? .16 : .28, 0, fat));
+      if (!sooah) g.add(box(.04, .28, .04, stand, -w * .28, 0, -d * .28), box(.04, .28, .04, stand, w * .28, 0, d * .28), box(.04, .28, .04, stand, -w * .28, 0, d * .28), box(.04, .28, .04, stand, w * .28, 0, -d * .28));
+      const glass = mat('#d5e7ef', {transparent:true, opacity:.35, roughness:.05});
+      const tank = rbox(w * .7, h, d * .7, glass, 0, sooah ? .24 : .32, 0, fat);
+      tank.castShadow = false; g.add(tank);
+      g.add(box(w * .5, .02, d * .5, fabric('#c9d7ea'), 0, sooah ? .26 : .34, 0));
+      return true;
+    }
+    case 'flowerbasket': {
+      g.add(cyl(w * .28, sooah ? w * .32 : w * .24, sooah ? .12 : .08, wood, 0, 0, 0, seg));
+      const petals = sooah ? cloth : fabric('#e7a0c4');
+      g.add(blob(.06, sooah ? .07 : .05, .06, petals, -.04, sooah ? .2 : .16, 0, bruno ? 6 : 12));
+      g.add(blob(.05, .05, .05, fabric('#f0c56a'), .05, sooah ? .18 : .15, .03, bruno ? 6 : 12));
+      g.add(box(.01, .08, .01, fabric('#7ea86a'), 0, .1, 0));
+      return true;
+    }
+    case 'plush': {
+      const body = sooah ? cloth : light ? fabric('#e6d3c4') : dark ? fabric('#243044') : bruno ? fabric('#cfc8be') : fabric(c);
+      g.add(blob(w * .38, sooah ? .32 : .28, d * .38, body, 0, sooah ? .32 : .28, 0, bruno ? 8 : 18));
+      if (bruno) g.add(blob(w * .08, .16, .06, body, w * .28, .2, d * .1, 6));
+      return true;
+    }
+    case 'rock': {
+      const stone = sooah ? fabric('#d9d0c4') : dark ? fabric('#3a3834') : fabric('#cfc8be');
+      if (bruno){
+        g.add(rbox(w * .5, .12, d * .4, stone, -.05, 0, 0, .01), rbox(w * .28, .08, d * .28, fabric('#b7b1a6'), w * .18, 0, .04, .008));
+      } else {
+        g.add(blob(w * .28, sooah ? .12 : .08, d * .22, stone, -.04, sooah ? .1 : .07, 0, sooah ? 12 : 10));
+        g.add(blob(w * .16, .06, d * .14, fabric('#b7b1a6'), w * .16, .05, .04, 10));
+      }
+      return true;
+    }
+    case 'reed': {
+      const pot = bruno ? mat('#3d342c', {roughness:.7}) : ceramic();
+      g.add(cyl(w * .22, w * .18, .08, pot, 0, 0, 0, seg));
+      const n = bruno ? 4 : sooah ? 3 : 5;
+      for (let k = 0; k < n; k++){
+        const a = k * 1.3;
+        if (bruno) g.add(rot(box(.015, .28, .08, fabric('#3f6b45'), Math.sin(a) * .04, .12, Math.cos(a) * .03), 0, a, .4));
+        else g.add(blob(sooah ? .05 : .025, sooah ? .16 : .2, .03, fabric('#7ea86a'), Math.sin(a) * .05, sooah ? .22 : .24, Math.cos(a) * .04, 8));
+      }
+      return true;
+    }
+    case 'milktea': {
+      const cup = sooah ? cloth : light ? white : dark ? black : ceramic();
+      if (bruno) g.add(box(w * .55, .1, d * .55, white, 0, y, 0), box(w * .4, .02, d * .4, black, 0, y + .1, 0));
+      else {
+        g.add(cyl(w * .32, sooah ? w * .38 : w * .26, sooah ? .14 : .09, cup, 0, y, 0, sooah ? 16 : 20));
+        g.add(cyl(w * .3, w * .3, sooah ? .03 : .015, sooah ? wood : white, 0, y + (sooah ? .14 : .09), 0, seg));
+      }
+      if (!bruno) g.add(rod([0, y + .1, 0], [.03, y + (sooah ? .22 : .18), .02], sooah ? .006 : .003, black));
+      return true;
+    }
+    case 'egg': {
+      if (bruno) g.add(rbox(w * .55, .07, d * .6, white, 0, y, 0, .01));
+      else if (sooah) g.add(blob(w * .4, .1, d * .42, ceramic(), 0, y + .1, 0, 14));
+      else if (dark) g.add(blob(w * .22, .04, d * .26, black, 0, y + .04, 0, 12));
+      else g.add(lathe([[.0, 0], [w * .12, .01], [w * .2, .04], [w * .16, .09], [w * .06, .12], [.008, .14]], light ? ceramic() : mat(c, {roughness:.35}), 0, y, 0, 20));
+      return true;
+    }
+    case 'cubes': {
+      const cols = sooah ? [wood, wood, wood] : bruno ? [fabric('#e7a0c4'), fabric('#9eb6e0'), fabric('#e07a2f')] : light ? [white, white, wood] : [black, black, wood];
+      [.0, .34, .66].forEach((t, i) => {
+        const s = sooah ? .07 : .045 - i * .004;
+        g.add(rbox(s, s, s, cols[i], -w * .3 + t * w, y, 0, fat));
+      });
+      return true;
+    }
+    case 'plaque': {
+      const board = sooah || light ? wood : dark ? black : bruno ? white : wood;
+      g.add(rod([-w * .15, 1.15, bz], [w * .15, 1.55, bz], sooah ? .02 : .01, wood));
+      [1.15, 1.32, 1.49].forEach(yy => g.add(rbox(w * .7, sooah ? .08 : .045, Math.max(d, .03), board, w * .15, yy, bz, fat)));
+      return true;
+    }
+    case 'shelfdecor': {
+      if (sooah){
+        g.add(cyl(.04, .045, .08, cloth, -.06, y, 0, seg), blob(.035, .04, .035, ceramic(), .06, y + .05, 0, 12));
+      } else if (bruno){
+        g.add(box(.05, .08, .05, fabric('#e07a2f'), -.05, y, 0), box(.06, .04, .05, white, .05, y, 0));
+      } else if (dark){
+        g.add(cyl(.035, .04, .09, ceramic(), -.05, y, 0, 16), box(.07, .04, .05, black, .06, y, 0));
+      } else {
+        g.add(cyl(.03, .035, .1, ceramic(), -.05, y, 0, 16), rbox(.08, .02, .06, wood, .06, y, 0, .004));
+      }
+      return true;
+    }
+    case 'controldeck': {
+      const body = sooah ? cloth : light || bruno ? white : black;
+      g.add(rbox(w, sooah ? .025 : .014, d, body, 0, y, 0, fat));
+      const n = bruno ? 4 : 6;
+      for (let i = 0; i < n; i++) g.add(cyl(.008, .008, .006, black, -w * .3 + w * .6 * (i + .5) / n, y + (sooah ? .025 : .014), 0, 8));
+      return true;
+    }
+    case 'drawerchest': {
+      const h = sooah ? .5 : .62;
+      const body = sooah ? cloth : dark ? black : bruno || light ? white : wood;
+      g.add(rbox(w, h, d, body, 0, 0, 0, fat));
+      for (let i = 0; i < 3; i++){
+        g.add(box(w * .72, .008, .008, sooah ? ceramic() : dark ? wood : black, 0, .12 + i * (h / 3.4), d / 2));
+        if (sooah) g.add(box(.04, .015, .02, wood, 0, .16 + i * (h / 3.4), d / 2));
+      }
+      return true;
+    }
+    case 'tvstand': {
+      if (station) return false;
+      if (dark){
+        g.add(box(w, .035, d, wood, 0, .42, 0), box(w * .96, .4, d * .9, black, 0, 0, 0));
+        g.add(box(w * .34, .18, d * .55, wood, w * .22, .1, .02));
+      } else if (bruno){
+        g.add(box(w, .04, d, wood, 0, .4, 0), box(w * .92, .36, d * .82, wood, 0, 0, 0));
+        g.add(box(w * .22, .14, d * .4, black, -w * .24, .12, .02), box(w * .22, .14, d * .4, black, w * .24, .12, .02));
+      } else if (sooah){
+        g.add(rbox(w, .1, d, wood, 0, .32, 0, .03), rbox(w * .9, .32, d * .86, wood, 0, 0, 0, .025));
+      } else {
+        g.add(box(w, .03, d, wood, 0, .4, 0), box(w * .94, .36, d * .88, white, 0, 0, 0));
+      }
+      return true;
+    }
+    case 'fridge': {
+      if (station) return false;
+      const h = sooah ? 1.15 : 1.7;
+      const body = sooah ? cloth : dark ? black : white;
+      g.add(rbox(w, h, d, body, 0, sooah ? .04 : 0, 0, fat));
+      g.add(box(w * .8, .008, .008, dark ? wood : black, 0, h * (sooah ? .62 : .68), d / 2));
+      return true;
+    }
+    case 'aircon': {
+      if (station) return false;
+      const h = sooah ? 1.05 : 1.55;
+      const body = sooah ? cloth : dark ? black : white;
+      g.add(rbox(w, h, d, body, 0, 0, 0, sooah ? .04 : .02));
+      for (let i = 0; i < (bruno ? 3 : 5); i++) g.add(box(w * .7, .008, .01, black, 0, h * .55 + i * .03, d / 2));
+      return true;
+    }
+    case 'acwall': {
+      if (station) return false;
+      const h = sooah ? .22 : .16;
+      g.add(rbox(w, h, Math.max(d, .12), sooah ? cloth : dark ? black : white, 0, 2.15, bz, fat));
+      g.add(box(w * .7, .012, .04, black, 0, 2.14, 0));
+      return true;
+    }
+    case 'purifier': {
+      if (station) return false;
+      const h = sooah ? .42 : .62;
+      if (bruno) g.add(box(w * .7, h, d * .7, white, 0, 0, 0));
+      else g.add(cyl(w * .32, sooah ? w * .36 : w * .28, h, sooah ? cloth : dark ? black : white, 0, 0, 0, seg));
+      g.add(disc(w * .22, .012, black, 0, h * .7, d * .2));
+      return true;
+    }
+    case 'cylindricalaircon': {
+      if (station) return false;
+      const h = sooah ? 1.1 : 1.6;
+      g.add(cyl(w * .42, w * .4, h, sooah ? cloth : dark ? black : white, 0, 0, 0, sooah ? 16 : bruno ? 8 : 28));
+      g.add(box(w * .5, .04, .01, black, 0, h * .7, d * .35));
+      return true;
+    }
+    case 'treadmill': {
+      if (station) return false;
+      const deck = sooah ? wood : dark ? black : bruno ? wood : mat(c, {roughness:.55});
+      g.add(rbox(w, sooah ? .1 : .08, d * .72, deck, 0, .08, d * .08, fat));
+      g.add(box(w * .7, .012, d * .5, black, 0, sooah ? .18 : .16, d * .1));
+      [-1, 1].forEach(s => g.add(box(sooah ? .06 : .03, sooah ? .7 : .9, .04, dark ? chrome() : black, s * w * .32, .1, bz + .08)));
+      return true;
+    }
+    case 'acoustic': {
+      if (station) return false;
+      const h = .85;
+      if (dark || light){
+        const n = Math.max(4, Math.round(w / .08));
+        for (let i = 0; i < n; i++) g.add(box(w / n * .45, h, Math.max(d, .04), wood, -w / 2 + w / n * (i + .5), 1.0, bz));
+      } else if (sooah){
+        g.add(rbox(w, h * .8, Math.max(d, .06), wood, 0, 1.05, bz, .02));
+      } else {
+        g.add(box(w, h, Math.max(d, .03), fabric(c), 0, 1.05, bz));
+      }
+      return true;
+    }
+    case 'curtain': {
+      if (station) return false;
+      g.add(rod([-w / 2, 2.15, bz], [w / 2, 2.15, bz], .01, dark ? black : wood));
+      const n = sooah ? 3 : bruno ? 2 : 6;
+      const clothC = sooah ? cloth : light ? white : dark ? black : fabric(c);
+      for (let i = 0; i < n; i++) g.add(rbox(w / n * .86, sooah ? 1.3 : 1.7, sooah ? .06 : .02, clothC, -w / 2 + w * (i + .5) / n, sooah ? .7 : .4, bz, fat));
+      return true;
+    }
+    default: return false;
+  }
+}
+function drawStylePiece(g, f, w, d, c, bz){
+  const id = typeof activeStyleId === 'function' ? activeStyleId() : 'station';
+  if (id === 'station' && !EXTRA_TYPES.has(f.type)) return false;
+  const sooah = id === 'sooah', bruno = id === 'bruno', dark = id === 'daniel-dark', light = id === 'daniel-light';
+  const woodHex = sooah ? '#e0b090' : dark ? '#8d5a32' : '#d8c2a2';
+  const wood = woodM(woodHex);
+  const black = mat(light ? '#cfc8be' : '#1c1c1e', {roughness: sooah ? .85 : .4, metalness: sooah ? 0 : .45});
+  const cloth = fabric(c);
+  const white = mat(light || sooah ? c : '#f4f1ea', {roughness:.62});
+  const screen = (typeof roomLook === 'function' && roomLook().screen) || '#163044';
+  const yDesk = sooah ? .6 : .74;
+  const fillet = sooah ? .03 : bruno ? .01 : .006;
+  const leg = (x, z, h, t, m) => {
+    if (light) g.add(rod([x, 0, z], [x, h, z], t * .55, m || wood, t));
+    else if (dark) g.add(rod([x, 0, z], [x, h, z], t * .45, m || black, t * .45));
+    else if (sooah) g.add(rbox(t * 2.4, h, t * 2.4, m || wood, x, 0, z, .02));
+    else g.add(box(t, h, t, m || black, x, 0, z));
+  };
+  const inset = Math.min(.1, w * .18, d * .18);
+  const four = (h, t, m) => [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => leg(a * (w / 2 - inset), b * (d / 2 - inset), h, t, m));
+  const screenBox = (sw, sh, x, y, z, depth, parent) => {
+    const face = box(Math.max(.04, sw), Math.max(.03, sh), .004, screenMat(screen), x, y, z + depth);
+    face.castShadow = false; face.userData.screen = true; (parent || g).add(face);
+  };
+  switch (f.type){
+    case 'gamedesk': case 'desk': {
+      const th = sooah ? .08 : bruno ? .04 : .02;
+      const top = bruno || sooah ? wood : dark ? black : white;
+      g.add(rbox(w, th, d, top, 0, yDesk, 0, fillet));
+      if (bruno){
+        const pw = Math.min(.46, w * .3);
+        g.add(rbox(pw, yDesk, d * .88, ceramic(), -w / 2 + pw / 2, 0, 0, .008));
+        for (let i = 0; i < 3; i++) g.add(box(pw * .78, .008, .008, black, -w / 2 + pw / 2, .16 + i * (yDesk / 3.4), d / 2 - .01));
+        g.add(box(Math.max(.08, w - pw - .12), .05, .05, black, pw * .35, 0, 0));
+      } else if (dark){
+        [-1, 1].forEach(s => { leg(s * (w * .32), bz + inset, yDesk, .016); leg(s * (w * .32), d / 2 - inset, yDesk, .016); });
+        g.add(box(w * .64, .016, .016, black, 0, .36, 0));
+        g.add(rbox(Math.min(.42, w * .28), .012, d * .4, black, -w / 2 + .24, yDesk - .01, 0, .003));
+      } else if (sooah){
+        four(yDesk, .045, wood);
+        g.add(rbox(w * .9, .06, .05, wood, 0, yDesk * .42, d / 2 - .05, .02));
+      } else four(yDesk, .016, wood);
+      if (!bruno) g.add(rbox(Math.min(.48, w * .42), sooah ? .035 : .014, d * .28, sooah ? fabric('#d7c2ee') : dark ? black : white, 0, yDesk + th, d * .08, fillet));
+      return true;
+    }
+    case 'ldesk': {
+      const run = Math.min(sooah ? .55 : .75, d * .5), ret = Math.min(sooah ? .55 : .75, w * .42);
+      const th = sooah ? .07 : .02;
+      const top = bruno || sooah ? wood : dark ? black : white;
+      g.add(rbox(w, th, run, top, 0, yDesk, bz + run / 2, fillet));
+      g.add(rbox(ret, th, d - run + .02, top, -w / 2 + ret / 2, yDesk, bz + run + (d - run) / 2, fillet));
+      const feet = [[-w / 2 + inset, bz + inset], [w / 2 - inset, bz + inset], [w / 2 - inset, bz + run - inset], [-w / 2 + inset, d / 2 - inset], [-w / 2 + ret - inset, d / 2 - inset]];
+      feet.forEach(([x, z]) => leg(x, z, yDesk, sooah ? .04 : .016, bruno || sooah || light ? wood : black));
+      if (bruno) g.add(rbox(Math.min(.4, ret * .8), yDesk * .7, .36, ceramic(), -w / 2 + ret * .45, 0, bz + run * .45, .008));
+      return true;
+    }
+    case 'coffeetable': case 'sidetable': {
+      const h = f.type === 'sidetable' ? (sooah ? .42 : .45) : (sooah ? .32 : .36);
+      const th = sooah ? .06 : bruno ? .05 : .025;
+      const top = bruno ? ceramic() : dark ? black : f.type === 'coffeetable' && light ? wood : sooah ? wood : white;
+      g.add(rbox(w, th, d, top, 0, h, 0, fillet));
+      if (bruno && f.type === 'coffeetable') g.add(rbox(w * .86, h, .04, wood, 0, 0, d * .2, .006), rbox(w * .86, .03, d * .8, wood, 0, .04, 0, .006));
+      else if (dark) four(h, .012, black);
+      else if (sooah) four(h, .035, wood);
+      else four(h, .014, light && f.type === 'sidetable' ? white : wood);
+      if (light && f.type === 'sidetable') g.add(rbox(w * .7, .04, d * .7, wood, 0, h * .45, 0, .004), cyl(w * .22, w * .22, .01, black, 0, h * .5, 0, 20));
+      return true;
+    }
+    case 'gamechair': case 'chair': case 'officechair': {
+      if (light){
+        legs(g, w * .72, d * .72, .44, wood, .05, .012);
+        g.add(rbox(w * .7, .05, d * .68, white, 0, .44, .02, .008), rbox(w * .66, .06, d * .64, cloth, 0, .49, .03, .012));
+        g.add(rot(rbox(w * .6, .48, .035, cloth, 0, .52, bz * .35, .01), -.14));
+        return true;
+      }
+      if (sooah){
+        g.add(cyl(.05, .055, .22, ceramic(), 0, .05, 0, 18));
+        g.add(rbox(w * .72, .1, d * .72, cloth, 0, .28, .02, .04));
+        g.add(rbox(w * .5, .32, .12, cloth, 0, .38, bz * .25, .04));
+        for (let k = 0; k < 5; k++){
+          const a = k * Math.PI * 2 / 5;
+          const x = Math.sin(a) * w * .28, z = Math.cos(a) * d * .28;
+          g.add(rbox(.06, .06, .1, ceramic(), x * .55, .05, z * .55, .02), cyl(.035, .035, .03, black, x, .02, z, 12));
+        }
+        return true;
+      }
+      const foot = dark ? chrome() : black;
+      const rad = Math.min(w, d) * .38;
+      for (let k = 0; k < 5; k++){
+        const a = k * Math.PI * 2 / 5, x = Math.sin(a) * rad, z = Math.cos(a) * rad;
+        g.add(rod([0, .08, 0], [x, .04, z], .014, foot, .01), cyl(.028, .028, .03, dark ? foot : '#111', x, .015, z, 12));
+      }
+      g.add(cyl(.035, .04, .16, black, 0, .08, 0, 14));
+      g.add(rbox(w * .7, .08, d * .66, cloth, 0, .42, .03, bruno ? .02 : .012));
+      g.add(rot(rbox(w * .58, bruno ? .62 : .52, .07, cloth, 0, .5, bz * .2, .016), -.16));
+      if (bruno) g.add(rot(rbox(w * .28, .1, .06, cloth, 0, .9, bz * .15, .02), -.16));
+      [-1, 1].forEach(s => g.add(box(.03, .16, .08, black, s * w * .36, .46, .04)));
+      return true;
+    }
+    case 'monitor': case 'ultrawide': case 'dualmon': {
+      const count = f.type === 'dualmon' ? 2 : 1;
+      const sw = f.type === 'ultrawide' ? Math.min(w * .92, .9) : count === 2 ? Math.min((w - .08) / 2, .58) : Math.min(w * .9, .62);
+      const sh = f.type === 'ultrawide' ? .32 : .36;
+      const xs = count === 2 ? [-sw / 2 - .03, sw / 2 + .03] : [0];
+      xs.forEach(x => {
+        const depth = sooah ? .07 : .02;
+        const frame = sooah ? cloth : light ? white : black;
+        g.add(rbox(sw, sh, depth, frame, x, yDesk + .08, bz + .06, sooah ? .03 : .004));
+        screenBox(sw * .84, sh * .74, x, yDesk + .1, bz + .06, depth * .55);
+        if (sooah){
+          g.add(rbox(.07, .12, .07, wood, x, yDesk, bz + .1, .02));
+          g.add(rbox(sw * .42, .035, .12, wood, x, yDesk - .02, bz + .1, .015));
+        } else if (dark){
+          g.add(box(sw * .16, .035, .03, black, x, yDesk + .02, bz + .08));
+          g.add(box(sw * .4, .012, .08, black, x, yDesk, bz + .1));
+        } else {
+          g.add(box(.028, .1, .028, light ? white : black, x, yDesk, bz + .09));
+          g.add(cyl(.07, .075, .014, light ? white : black, x, yDesk - .01, bz + .12, 20));
+        }
+      });
+      return true;
+    }
+    case 'tv': {
+      const th = w * .56, depth = sooah ? .08 : .025, yb = sooah ? .85 : 1.05;
+      g.add(rbox(w, th, depth, light ? white : black, 0, yb, bz, sooah ? .03 : .004));
+      screenBox(w * .9, th * .82, 0, yb + th * .06, bz, depth * .55);
+      return true;
+    }
+    case 'sofa': case 'armchair': {
+      const n = f.type === 'armchair' || w < 1.2 ? 1 : 2;
+      const lh = light ? .14 : sooah ? .08 : .05;
+      if (light) legs(g, w, d, lh, wood, .07, .014);
+      else if (sooah) four(lh, .04, wood);
+      else g.add(rbox(w * .94, lh, d * .94, black, 0, 0, 0, .01));
+      g.add(rbox(w, sooah ? .22 : .16, d, cloth, 0, lh, 0, sooah ? .05 : .02));
+      g.add(rbox(w, sooah ? .36 : .48, sooah ? .18 : .14, cloth, 0, lh, bz + .08, sooah ? .05 : .02));
+      if (!light) [-1, 1].forEach(s => g.add(rbox(sooah ? .16 : .12, .32, d * .9, cloth, s * (w / 2 - .08), lh, 0, sooah ? .04 : .02)));
+      const cw = (w - (light ? .08 : .36)) / n;
+      for (let i = 0; i < n; i++){
+        const x = -w / 2 + (light ? .04 : .18) + cw * (i + .5);
+        g.add(rbox(cw * .9, .08, d * .55, cloth, x, lh + .16, .06, sooah ? .03 : .015));
+      }
+      if (light) g.add(rbox(.28, .1, .22, fabric('#c9d7ea'), w * .22, lh + .26, .02, .02));
+      return true;
+    }
+    case 'beanbag': {
+      g.add(blob(w * .42, sooah ? .28 : .34, d * .42, cloth, 0, sooah ? .28 : .34, 0, sooah ? 18 : 24));
+      if (sooah) [-1, 1].forEach(s => g.add(blob(.08, .05, .1, fabric('#d4554a'), s * w * .12, .08, d * .12, 12)));
+      if (bruno) g.add(blob(w * .16, .22, .1, fabric('#d9d4d0'), w * .28, .5, 0, 16));
+      return true;
+    }
+    case 'plant': {
+      const pot = bruno ? mat('#3d342c', {roughness:.7}) : dark ? mat('#6b4a32', {roughness:.45}) : ceramic();
+      g.add(cyl(sooah ? .16 : .12, sooah ? .13 : .1, sooah ? .18 : .16, pot, 0, 0, 0, sooah ? 16 : 24));
+      if (bruno){
+        for (let k = 0; k < 5; k++){
+          const a = k * 1.2;
+          g.add(rot(box(.02, .34, .22, fabric('#3f6b45'), Math.sin(a) * .08, .2, Math.cos(a) * .06, .01), 0, a, .5));
+        }
+      } else if (sooah){
+        g.add(blob(.22, .2, .22, fabric('#7ea86a'), -.06, .4, 0, 14), blob(.16, .16, .16, fabric('#8fb56f'), .1, .48, .04, 14));
+      } else if (light){
+        for (let k = 0; k < 4; k++){
+          const a = k * 1.4;
+          g.add(rod([0, .16, 0], [Math.sin(a) * .08, .55, Math.cos(a) * .06], .006, wood));
+          g.add(blob(.08, .1, .05, fabric('#7ea86a'), Math.sin(a) * .1, .58, Math.cos(a) * .06, 10));
+        }
+      } else {
+        g.add(blob(.24, .28, .24, fabric('#3f6b45'), 0, .48, 0, 16));
+      }
+      return true;
+    }
+    case 'pctower': {
+      const h = sooah ? Math.max(.32, Math.min(d, .42)) : .48;
+      const body = light || sooah ? mat(c, {roughness:.7}) : black;
+      g.add(rbox(w, h, d, body, 0, .02, 0, sooah ? .04 : .008));
+      if (!bruno){
+        const pane = box(w * .72, h * .55, .006, glassMat || mat('#d5e7ef', {transparent:true, opacity:.35, roughness:.05}), 0, h * .22, d / 2);
+        pane.castShadow = false; g.add(pane);
+        const n = sooah ? 2 : 3;
+        for (let i = 0; i < n; i++){
+          const fan = mesh(new THREE.TorusGeometry(sooah ? .05 : .035, .006, 8, 18), black);
+          fan.position.set(0, .12 + i * (h * .22), d / 2 + .004); g.add(fan);
+        }
+      }
+      return true;
+    }
+    case 'console': {
+      const shell = bruno ? chrome() : dark ? mat('#d5d7db', {metalness:.55, roughness:.28}) : sooah ? cloth : white;
+      g.add(rbox(w, sooah ? .03 : .016, d * .62, shell, 0, yDesk, d * .08, fillet));
+      const lid = new THREE.Group();
+      lid.position.set(0, yDesk + .02, bz + d * .2);
+      lid.rotation.x = sooah ? -.7 : -1.05;
+      lid.add(rbox(w * .96, d * .5, sooah ? .03 : .012, shell, 0, 0, d * .25, fillet));
+      screenBox(w * .8, d * .28, 0, .02, d * .22, .02, lid);
+      g.add(lid);
+      return true;
+    }
+    case 'headset': {
+      const y = yDesk + .02;
+      const band = sooah ? cloth : black;
+      g.add(tube([[-w * .32, y + .02, 0], [0, y + .12, 0], [w * .32, y + .02, 0]], sooah ? .012 : .006, band));
+      [-1, 1].forEach(s => g.add(sooah ? blob(.05, .045, .04, cloth, s * w * .32, y, 0, 12) : rbox(.05, .07, .045, black, s * w * .32, y - .02, 0, .012)));
+      return true;
+    }
+    case 'micarm': {
+      const y = yDesk;
+      g.add(cyl(.04, .045, .016, sooah ? ceramic() : black, -w * .1, y, bz + .04, 16));
+      g.add(tube([[-w * .1, y + .02, bz + .04], [0, y + (sooah ? .16 : .24), 0], [w * .08, y + .14, d * .12]], sooah ? .012 : .007, black));
+      g.add(sooah ? blob(.04, .04, .04, black, w * .1, y + .12, d * .16, 12) : cyl(.02, .022, .05, black, w * .1, y + .1, d * .16, 12));
+      return true;
+    }
+    case 'deskspeaker': {
+      g.add(rbox(w, sooah ? .08 : .14, d, sooah ? cloth : black, 0, yDesk, 0, sooah ? .03 : .008));
+      const driver = cyl(Math.min(w, d) * .22, Math.min(w, d) * .22, .01, '#161616', 0, yDesk + (sooah ? .05 : .08), d / 2, 16);
+      driver.rotation.x = Math.PI / 2; g.add(driver);
+      return true;
+    }
+    case 'ledbar': {
+      if (bruno){
+        g.add(tube([[0, yDesk, 0], [.05, yDesk + .28, .04], [.02, yDesk + .42, .1]], .01, black));
+        g.add(blob(.08, .05, .1, ceramic(), .02, yDesk + .46, .12, 14));
+      } else if (sooah){
+        const n = 7;
+        for (let i = 0; i < n; i++) g.add(blob(.025, .025, .025, glowMat('#ffe08a', '#ffb84a', .8), -w / 2 + w * (i + .5) / n, 1.7 + (i % 2) * .04, 0, 10));
+      } else {
+        const bar = box(w, .02, .03, glowMat(dark ? '#ffd7a8' : '#f7f4ee', dark ? '#e7b56a' : '#f4f1ea', dark ? 1 : .4), 0, dark ? 1.4 : yDesk + .02, 0);
+        bar.castShadow = false; g.add(bar);
+      }
+      return true;
+    }
+    case 'floorlamp': {
+      if (dark){
+        [[0, 0], [1.9, 0], [3.8, 0]].forEach(a => g.add(rod([0, .7, 0], [Math.sin(a[0]) * .22, 0, Math.cos(a[0]) * .22], .012, black)));
+        g.add(cyl(.09, .1, .28, fabric('#f3ead8'), 0, .95, 0, 20));
+        const bulb = cyl(.05, .05, .08, glowMat('#fff4dc', '#ffd7a1', 1.2), 0, 1.02, 0, 12);
+        bulb.castShadow = false; g.add(bulb);
+      } else if (sooah){
+        g.add(cyl(.08, .09, .04, ceramic(), 0, 0, 0, 16), cyl(.025, .025, .28, ceramic(), 0, .04, 0, 12));
+        g.add(cyl(.1, .12, .1, fabric('#c9d7ea'), 0, .32, 0, 16));
+      } else if (bruno){
+        g.add(tube([[0, yDesk, 0], [.12, yDesk + .3, .05], [.04, yDesk + .48, .08]], .012, black));
+        g.add(blob(.07, .04, .1, ceramic(), .04, yDesk + .5, .1, 14));
+      } else {
+        g.add(rod([0, 0, 0], [0, 1.35, 0], .012, wood), cyl(.12, .14, .22, white, 0, 1.2, 0, 20));
+      }
+      return true;
+    }
+    case 'pegboard': {
+      const h = sooah ? .7 : .9, y0 = sooah ? .8 : 1.05;
+      const board = sooah || light || bruno ? wood : black;
+      g.add(rbox(w, h, sooah ? .06 : .03, board, 0, y0, bz, sooah ? .02 : .004));
+      if (light) [0.2, .55, .85].forEach(k => g.add(rbox(w * .8, .02, .12, wood, 0, y0 + h * k, .02, .004)));
+      else if (sooah){
+        for (let i = 0; i < 4; i++) for (let j = 0; j < 3; j++) g.add(cyl(.015, .015, .01, mat('#c9a27a', {roughness:.6}), -w * .3 + i * w * .2, y0 + .15 + j * .18, .02, 8));
+        g.add(rbox(w * .4, .04, .1, wood, -w * .15, y0 + h * .45, .04, .015));
+      } else g.add(rbox(w * .7, .02, .1, wood, 0, y0 + h * .6, .03, .004));
+      return true;
+    }
+    case 'bookshelf': {
+      const h = dark ? 2.4 : sooah ? .5 : 1.9;
+      const y0 = sooah ? 1.15 : 0;
+      if (sooah){
+        g.add(rbox(w, .08, d, wood, 0, y0, 0, .025));
+        [-1, 1].forEach(s => g.add(rbox(.08, .12, d * .7, wood, s * w * .32, y0 - .12, 0, .02)));
+        return true;
+      }
+      [-1, 1].forEach(s => g.add(box(.03, h, d, wood, s * (w / 2 - .015), y0, 0)));
+      const rows = dark ? 7 : bruno ? 4 : 3;
+      for (let i = 0; i < rows; i++) g.add(box(w - .04, .02, d * .9, wood, 0, y0 + .2 + i * ((h - .3) / rows), 0));
+      if (bruno) g.add(rbox(w * .7, .55, d * .9, ceramic(), 0, y0, 0, .006));
+      if (dark) g.add(box(w, h, .012, woodM(darker(woodHex, .7)), 0, y0, bz));
+      return true;
+    }
+    case 'figurecab': case 'cabinet': {
+      const h = f.type === 'figurecab' ? (dark ? 2.45 : 1.7) : (sooah ? .55 : .8);
+      const body = dark ? wood : light ? white : sooah ? cloth : wood;
+      g.add(rbox(w, h, d, body, 0, 0, 0, fillet));
+      if (dark && f.type === 'figurecab'){
+        for (let i = 1; i < 6; i++) g.add(box(w * .92, .015, d * .85, wood, 0, i * .38, .01));
+        g.add(box(.015, h * .7, d * .8, wood, 0, .5, .01));
+      } else if (f.type === 'cabinet'){
+        const n = 3;
+        for (let i = 0; i < n; i++) g.add(box(w * .84, .008, .008, dark ? wood : black, 0, .16 + i * (h / 4), d / 2));
+      } else if (!sooah){
+        const pane = box(w * .8, h * .7, .006, glassMat || mat('#d5e7ef', {transparent:true, opacity:.3, roughness:.05}), 0, h * .12, d / 2);
+        pane.castShadow = false; g.add(pane);
+      }
+      return true;
+    }
+    case 'piano': {
+      const body = sooah ? cloth : dark || bruno ? black : wood;
+      const kh = sooah ? .55 : .72;
+      g.add(rbox(w, sooah ? .16 : .12, d * .45, body, 0, kh, bz + d * .05, fillet));
+      if (sooah){
+        [-1, 1].forEach(s => g.add(box(.04, kh, .04, chrome(), s * (w * .28), 0, d * .05), box(.04, kh, .04, chrome(), s * (w * .28), 0, -d * .08)));
+      } else [-1, 1].forEach(s => g.add(box(.05, kh, d * .5, body, s * (w / 2 - .04), 0, 0)));
+      const keys = Math.max(8, Math.round(w / .04));
+      for (let i = 0; i < keys; i++) g.add(box((w * .8) / keys - .004, .02, d * .16, i % 7 === 2 || i % 7 === 6 ? black : ceramic(), -w * .4 + (w * .8) * (i + .5) / keys, kh + (sooah ? .16 : .12), d * .02));
+      return true;
+    }
+    case 'rug': {
+      g.add(rbox(w, sooah ? .02 : .008, d, cloth, 0, 0, 0, sooah ? .04 : .004));
+      if (light) g.add(rot(box(w * .45, .004, d * .28, black, 0, .01, 0), 0, .6));
+      if (dark){
+        const cols = ['#c46a3a', '#8a8680', '#e6dcc8', '#1c1c1e'];
+        cols.forEach((col, i) => g.add(box(w * .42, .004, d * .42, fabric(col), (i % 2 ? .2 : -.2) * w, .01, (i < 2 ? -.18 : .18) * d)));
+      }
+      return true;
+    }
+    case 'bed': {
+      const head = light ? white : sooah ? cloth : dark ? black : wood;
+      g.add(rbox(w, sooah ? .28 : .22, d, cloth, 0, sooah ? .12 : .2, 0, fillet));
+      g.add(rbox(w, sooah ? .7 : .9, sooah ? .12 : .06, head, 0, 0, bz, fillet));
+      g.add(rbox(w * .7, .08, d * .35, light ? white : cloth, 0, sooah ? .4 : .42, bz + .2, fillet));
+      return true;
+    }
+    default: return drawExtraPiece(g, f, w, d, c, bz, id);
+  }
+}
 function buildFurniture(f){
-  const g = new THREE.Group(), w = M(f.w), d = M(f.d), c = f.color || '#ddd', bz = -d/2, R = rng(Math.round(f.w*7 + f.d*13 + f.cx + f.cy));
+  const g = new THREE.Group(), w = M(f.w), d = M(f.d), c = typeof stylePaint === 'function' ? stylePaint(f.type, f.color) : (f.color || '#ddd'), bz = -d/2, R = rng(Math.round(f.w*7 + f.d*13 + f.cx + f.cy));
   const spec = Array.isArray(f.parts) && f.parts.length ? f.parts : (typeof customPartsOf === 'function' ? customPartsOf(f.type, f.w, f.d) : null);
-  if (spec) drawCustomFurniture(g, f, spec);
+  const styleId = typeof activeStyleId === 'function' ? activeStyleId() : 'station';
+  const ctx = {w, d, c, bz, R, box, rbox, cyl, lathe, rod, tube, blob, ring, shell, legs, fronts, vase, tableLamp, plate, mat, fabric, woodM, ceramic, chrome, blackMetal, hwMat, mirror, screenMat, glowMat, glassMat, darker, lighter, rot};
+  if (styleId === 'bruno' && typeof drawBruno === 'function' && drawBruno(g, f, ctx)) { /* bruno 真形态已画 */ }
+  else if (styleId === 'daniel-light' && typeof drawDanielLight === 'function' && drawDanielLight(g, f, ctx)) { /* 浅色真形态已画 */ }
+  else if (styleId === 'daniel-dark' && typeof drawDanielDark === 'function' && drawDanielDark(g, f, ctx)) { /* 深色真形态已画 */ }
+  else if (styleId === 'sooah' && typeof drawSooah === 'function' && drawSooah(g, f, ctx)) { /* 黏土真形态已画 */ }
+  else {
+  const stationMesh = styleId === 'station';
+  if (spec && stationMesh) drawCustomFurniture(g, f, spec);
+  else if (drawStylePiece(g, f, w, d, c, bz)) { /* 风格轮廓已画 */ }
+  else if (spec) drawCustomFurniture(g, f, spec);
   else switch (f.type){
     case 'bed': {
       const fr = woodM('#8d7258'), fab = fabric(c), fh = .3, mt = .22, top = fh + mt, n = Math.max(3, Math.round(w/.28)), sw = (w - .04)/n;
@@ -1216,8 +1961,8 @@ function buildFurniture(f){
     case 'tv': {
       const th = w*.5625, yb = 1.2 - th/2, z = bz + .03;
       g.add(rbox(w*.6, th*.6, .03, '#222', 0, yb + th*.2, bz + .015, .01));
-      g.add(rbox(w, th, .025, mat('#18181a', {roughness:.4, metalness:.3}), 0, yb, z + .01, .004));
-      const face = box(w - .016, th - .022, .002, screenMat('#1f2b3a'), 0, yb + .014, z + .0235);
+      g.add(rbox(w, th, .025, mat(c || '#18181a', {roughness:.4, metalness:.3}), 0, yb, z + .01, .004));
+      const face = box(w - .016, th - .022, .002, screenMat(roomLook().screen || '#1f2b3a'), 0, yb + .014, z + .0235);
       face.castShadow = false; face.userData.screen = true;
       g.add(face, box(.04, .006, .002, '#8a8a8e', 0, yb + .004, z + .0235));
       break;
@@ -1350,12 +2095,12 @@ function buildFurniture(f){
       g.add(rot(rbox(w * .26, .09, .07, fab, 0, 1.12, bz + .06, .025), -.18));
       break;
     }
-    case 'monitor': deskPanel(g, 0, bz + .04, Math.min(w - .02, .62), .34); break;
-    case 'ultrawide': deskPanel(g, 0, bz + .04, Math.min(w - .04, .86), .34); break;
+    case 'monitor': deskPanel(g, 0, bz + .04, Math.min(w - .02, .62), .34, c); break;
+    case 'ultrawide': deskPanel(g, 0, bz + .04, Math.min(w - .04, .86), .34, c); break;
     case 'dualmon': {
       const sw = Math.min(.6, (w - .08) / 2);
-      deskPanel(g, -sw / 2 - .02, bz + .04, sw, .34);
-      deskPanel(g, sw / 2 + .02, bz + .04, sw, .34);
+      deskPanel(g, -sw / 2 - .02, bz + .04, sw, .34, c);
+      deskPanel(g, sw / 2 + .02, bz + .04, sw, .34, c);
       break;
     }
     case 'pctower': {
@@ -1453,6 +2198,7 @@ function buildFurniture(f){
     }
     default: g.add(box(w, .8, d, c));
   }
+  } // end non-bruno branch
   if (f.src && (f.type === 'monitor' || f.type === 'ultrawide' || f.type === 'dualmon' || f.type === 'tv')) paintScreens(g, f.src, f.id);
   g.position.set(wx(f.cx), 0, wz(f.cy));
   g.rotation.y = -f.rot * Math.PI/180;       // 平面顺时针旋转 → 绕 Y 轴负向
@@ -1520,19 +2266,26 @@ function distPointPoly(x, z, q){
   }
   return inn ? 0 : best;
 }
+function styleWallMat(w){
+  const look = roomLook();
+  const side = String(w && w.id || '').slice(-1);
+  const hex = (look.walls && look.walls[side]) || look.wall || '#f4f1eb';
+  return mat(hex, {roughness: look.wallRough == null ? .92 : look.wallRough});
+}
 function addRun(w, yb, yt){
   if (yt - yb <= .001) return;
   const len = Math.hypot(w.b[0] - w.a[0], w.b[1] - w.a[1]);
   if (len < 1) return;
   const axis = Math.abs(w.a[0] - w.b[0]) < 0.5 || Math.abs(w.a[1] - w.b[1]) < 0.5;
+  const faces = [styleWallMat(w), styleWallMat(w), capMat, styleWallMat(w), styleWallMat(w), styleWallMat(w)];
   let o;
   if (axis){
     const [x0, y0, x1, y1] = wallAabb(w);
-    o = new THREE.Mesh(new THREE.BoxGeometry(M(x1 - x0), yt - yb, M(y1 - y0)), [wallMat, wallMat, capMat, wallMat, wallMat, wallMat]);
+    o = new THREE.Mesh(new THREE.BoxGeometry(M(x1 - x0), yt - yb, M(y1 - y0)), faces);
     o.position.set(wx((x0 + x1) / 2), (yb + yt) / 2, wz((y0 + y1) / 2));
   } else {
     const ang = Math.atan2(w.b[1] - w.a[1], w.b[0] - w.a[0]);
-    o = new THREE.Mesh(new THREE.BoxGeometry(M(len), yt - yb, M(w.thick)), [wallMat, wallMat, capMat, wallMat, wallMat, wallMat]);
+    o = new THREE.Mesh(new THREE.BoxGeometry(M(len), yt - yb, M(w.thick)), faces);
     o.position.set(wx((w.a[0] + w.b[0]) / 2), (yb + yt) / 2, wz((w.a[1] + w.b[1]) / 2));
     o.rotation.y = -ang;
   }
@@ -1715,7 +2468,8 @@ function buildArch(){
   const hidden = opt.exhibit ? exhibitHidden() : new Set();
   const top = opt.exhibit ? H : opt.cut;
   ROOMS.forEach(r => {
-    const m = floorMat(state.rooms[r.id].mat), bay = r.counted === false;
+    const previewFloor = typeof activeStyleId === 'function' && activeStyleId() !== 'station' ? roomLook().floor : '';
+    const m = floorMat(previewFloor || state.rooms[r.id].mat), bay = r.counted === false;
     let geo;
     if (bay){ geo = new THREE.ExtrudeGeometry(shapeOf(r.poly), {depth:.45, bevelEnabled:false}); geo.rotateX(-Math.PI/2); }
     else geo = floorSlab(r.poly);
@@ -1724,7 +2478,7 @@ function buildArch(){
     if (bay) archUp.add(fl); else archFloor.add(fl);
     // 天花：法线朝下，只在室内仰视时可见
     const cg = new THREE.ShapeGeometry(shapeOf(r.poly, true)); cg.rotateX(Math.PI/2);
-    const ceil = new THREE.Mesh(cg, mat('#fbfaf7', {roughness:1})); ceil.position.y = H; ceil.visible = !opt.exhibit && top >= H; archUp.add(ceil);
+    const ceil = new THREE.Mesh(cg, mat(roomLook().ceil || '#fbfaf7', {roughness:1})); ceil.position.y = H; ceil.visible = !opt.exhibit && top >= H; archUp.add(ceil);
     if (r.at){
       const lamp = new THREE.Mesh(new THREE.CylinderGeometry(.22, .22, .02, 32), new THREE.MeshStandardMaterial({color:'#fff', emissive:'#fff2d6', emissiveIntensity:.3}));
       lamp.position.set(wx(r.at[0]), H - .012, wz(r.at[1])); lamp.visible = !opt.exhibit && top >= H; lampG.add(lamp);
@@ -1774,36 +2528,57 @@ function buildLabels(){
 }
 
 let studio = false, pieceKey = '', pieceId = '';
+function clearCssLabels(){
+  labelG.children.slice().forEach(o => { o.element.remove(); labelG.remove(o); });
+}
 function showPiece(){
   const f = studioFurn || (ui.sel?.kind === 'furn' ? getF(ui.sel.id) : null);
-  const key = f ? [f.id, f.type, f.w, f.d, f.rot, f.color, f.src || ''].join('|') : '';
+  const key = f ? [f.id, f.type, f.w, f.d, f.rot, f.color, f.src || '', 'x5'].join('|') : '';
   const same = !!(f && pieceId === f.id);
   if (key === pieceKey) return;
   pieceKey = key; pieceId = f ? f.id : '';
   clearGroup(furnG);
+  clearCssLabels();
   selKey = '';
   if (selHelper){ scene.remove(selHelper); selHelper.geometry.dispose(); selHelper = null; }
-  archFloor.visible = archUp.visible = labelG.visible = lampG.visible = false;
-  showLabels(false);
+  archFloor.visible = archUp.visible = lampG.visible = false;
   furnG.visible = true; furnGrow = grow = 1; applyGrow();
   const hint = $('#hint3d');
   if (!f){
+    labelG.visible = false;
     hint.textContent = tr('先从左侧点一件家具', 'Pick a piece from the library');
     orbit.target.set(0, .4, 0); camera.position.set(1.6, 1.1, 1.8); orbit.update();
     return;
   }
-  const g = buildFurniture(f);
-  g.position.set(0, 0, 0);
-  furnG.add(g);
-  const box = new THREE.Box3().setFromObject(g);
+  const styles = typeof ROOM_STYLES === 'undefined' ? [{id:'station', name:'电竞黑'}] : Object.values(ROOM_STYLES);
+  const span = Math.max(M(f.w), M(f.d), .7) + .75;
+  styles.forEach((s, i) => {
+    if (typeof setStyleDraw === 'function') setStyleDraw(s.id);
+    const g = buildFurniture(f);
+    const x = (i - (styles.length - 1) / 2) * span;
+    g.position.set(x, 0, 0);
+    furnG.add(g);
+    const top = new THREE.Box3().setFromObject(g).max.y;
+    const el = document.createElement('div');
+    el.className = 'rlabel';
+    el.textContent = s.name;
+    const o = new CSS2DObject(el);
+    o.position.set(x, Math.max(top, .4) + .18, 0);
+    o.visible = true;
+    labelG.add(o);
+  });
+  if (typeof setStyleDraw === 'function') setStyleDraw(null);
+  labelG.visible = true;
+  const box = new THREE.Box3().setFromObject(furnG);
   const size = box.getSize(new THREE.Vector3()), center = box.getCenter(new THREE.Vector3());
-  hint.textContent = tr('拖动旋转查看 · 右侧可改尺寸和颜色', 'Drag to orbit · size and color are on the right');
+  hint.textContent = tr('五种风格并排 · 拖动旋转 · 右侧改的是这一套数据', 'Five styles side by side · drag to orbit · the right panel edits the one record');
   if (!same){
-    const dist = Math.max(size.x, size.y, size.z) * 1.8 + .6;
+    const fov = camera.fov * Math.PI / 180, aspect = camera.aspect || 1;
+    const dist = Math.max((size.y / 2 + .55) / Math.tan(fov / 2), (size.x / 2 + .4) / Math.tan(fov / 2) / aspect) * 1.12;
     orbit.target.copy(center);
-    camera.position.set(center.x + dist * .55, center.y + dist * .42, center.z + dist);
-    camera.near = .02; camera.far = 80; camera.updateProjectionMatrix();
-    orbit.minDistance = .35; orbit.maxDistance = Math.max(8, dist * 4);
+    camera.position.set(center.x, center.y + dist * .22, center.z + dist);
+    camera.near = .02; camera.far = Math.max(80, dist * 8); camera.updateProjectionMatrix();
+    orbit.minDistance = .35; orbit.maxDistance = Math.max(12, dist * 6);
     orbit.update();
   }
 }
@@ -1822,6 +2597,7 @@ function exitStudio(){
   studio = false; pieceKey = ''; pieceId = '';
   if (!inited) return;
   archFloor.visible = archUp.visible = labelG.visible = lampG.visible = true;
+  clearCssLabels();
   showLabels(false); clearGroup(furnG);
   selKey = '';
   if (selHelper){ scene.remove(selHelper); selHelper.geometry.dispose(); selHelper = null; }
@@ -1837,7 +2613,8 @@ function exitStudio(){
 function sync(force){
   if (!inited || (!active && !force)) return;
   if (studio){ showPiece(); return; }
-  const a = JSON.stringify([state.walls, state.openings, state.lintels, state.shellRooms, state.bays, state.rooms, state.demolished, opt.cut, opt.exhibit]), f = JSON.stringify(state.furniture), l = JSON.stringify([state.shellRooms, state.rooms, opt.cut, opt.exhibit]);
+  const lookId = typeof activeStyleId === 'function' ? activeStyleId() : 'station';
+  const a = JSON.stringify([state.walls, state.openings, state.lintels, state.shellRooms, state.bays, state.rooms, state.demolished, lookId, opt.cut, opt.exhibit]), f = JSON.stringify([state.furniture, lookId]), l = JSON.stringify([state.shellRooms, state.rooms, opt.cut, opt.exhibit]);
   if (force || a !== sigArch){ sigArch = a; buildArch(); }
   if (force || f !== sigFurn){ sigFurn = f; buildFurn(); }
   if (force || l !== sigLabels){ sigLabels = l; buildLabels(); }
@@ -1854,15 +2631,23 @@ function applyGrow(){
 
 /* ======================= 日照 / 夜景 ======================= */
 function applyLight(){
+  const look = roomLook();
   const t = (opt.hour - 6) / 12, az = Math.PI * (.15 + t*.7), el = Math.sin(Math.PI*t) * 1.05 + .15, warm = 1 - Math.sin(Math.PI*t);
   sun.position.set(Math.cos(az)*18, Math.sin(el)*20 + 3, -Math.sin(az)*10 + 8); sun.target.position.set(0, 0, 0);
   sun.color.setHSL(.09, .5 + warm*.4, .92 - warm*.12);
-  sun.intensity = opt.night ? .05 : 1.4 + Math.sin(Math.PI*t)*1.6;
-  hemi.intensity = opt.night ? .12 : 1.1;
-  scene.background = new THREE.Color(opt.night ? 0x1c2130 : 0xf7f4ee);
-  ground.material.color.set(opt.night ? 0x2a2e38 : 0xf2eee7);
-  lampG.children.forEach(o => { if (o.isPointLight) o.intensity = opt.night ? 6 : 0; else o.material.emissiveIntensity = opt.night ? 2 : .3; });
-  renderer.toneMappingExposure = opt.night ? 1.25 : 1.05;
+  const day = 1.4 + Math.sin(Math.PI*t)*1.6;
+  sun.intensity = opt.night ? .05 : day * (look.sun == null ? 1 : look.sun);
+  hemi.intensity = opt.night ? .12 : 1.1 * (look.hemi == null ? 1 : look.hemi);
+  scene.background = new THREE.Color(opt.night ? 0x1c2130 : (look.bg || '#f7f4ee'));
+  ground.material.color.set(opt.night ? 0x2a2e38 : (look.ground || '#f2eee7'));
+  if (frameMat && look.frame) frameMat.color.set(look.frame);
+  if (wallMat && look.wall) wallMat.color.set(look.wall);
+  lampG.children.forEach(o => {
+    const warm = opt.night || look.id === 'daniel-dark';
+    if (o.isPointLight) o.intensity = warm ? (opt.night ? 6 : 4) : 0;
+    else o.material.emissiveIntensity = warm ? 2 : .3;
+  });
+  renderer.toneMappingExposure = opt.night ? 1.25 : (look.exposure || 1.05);
   envK = opt.night ? .15 : 1; matCache.forEach(m => { if (m.envMap) m.envMapIntensity = m.userData.env*envK; });
   const h = Math.floor(opt.hour), m = Math.round((opt.hour - h)*60);
   $('#sunT').textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;

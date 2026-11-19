@@ -228,6 +228,7 @@ body.tab-plan .menu-pop .for-doc,
 body.tab-plan .menu-pop .for-plan-only,
 body.tab-preview .menu-pop .btn.for-preview{display:block}
 .range span{font-variant-numeric:tabular-nums;color:var(--ink)}
+#stylePick{border:1px solid var(--line);border-radius:8px;background:#fff;padding:5px 8px;max-width:8.5em}
 /* ---------- 选中后的浮动工具条 ---------- */
 #fab{position:absolute;left:50%;bottom:16px;transform:translate(-50%,12px);display:flex;align-items:center;gap:4px;padding:5px;
   background:rgba(255,253,249,.97);border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 26px rgba(40,30,20,.16);
@@ -445,6 +446,10 @@ body.tab-decor .stage-corner.for-decor,body.tab-plan .stage-corner.right{display
           <button class="btn" id="vStage" data-en="Stage">展台</button>
         </div>
       </div>
+      <div class="cluster only3d" id="styleCluster">
+        <span class="cluster-name" data-en="Style">风格</span>
+        <select id="stylePick" aria-label="三维预览风格"></select>
+      </div>
       <div class="cluster">
         <span class="cluster-name" data-en="History">历史</span>
         <div class="grp" id="hist">
@@ -642,6 +647,12 @@ body.tab-decor .stage-corner.for-decor,body.tab-plan .stage-corner.right{display
 </div>
 <input type="file" id="furnFile" accept=".json,application/json" hidden>
 
+<script src="js/room-styles.js"></script>
+<script src="js/furn-textures.js"></script>
+<script src="js/draw-bruno.js"></script>
+<script src="js/draw-daniel-light.js"></script>
+<script src="js/draw-daniel-dark.js"></script>
+<script src="js/draw-sooah.js"></script>
 <script src="js/esports-plans.js"></script>
 <script src="js/pack-prompt.js"></script>
 <script src="js/furn-prompt.js"></script>

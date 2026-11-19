@@ -5,10 +5,14 @@
 竖向按右侧 2235/579/3246/2795/1357（左侧总深多 120，见交付说明）。
 """
 import json
+import os
 import sys
 
-IMG = "/Users/worker/Desktop/projects/threejs-home/floorplan-3d/standard_1784555545922.jpeg"
-OUT = sys.argv[1] if len(sys.argv) > 1 else "/Users/worker/Desktop/projects/threejs-home/floorplan-3d/beike-std/spec.json"
+# 底图与输出都用相对本脚本的路径，换机器不用改
+HERE = os.path.dirname(os.path.abspath(__file__))
+REPO = os.path.abspath(os.path.join(HERE, "..", ".."))
+IMG = os.path.join(REPO, "floorplan-3d", "standard_1784555545922.jpeg")
+OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, "spec.json")
 
 T = 240
 t = 120
